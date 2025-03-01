@@ -77,7 +77,7 @@ HapticWrist::HapticWrist() {
 };
 
 void HapticWrist::set_position(Eigen::Vector3d pos) {
-	boost::lock_guard<boost::mutex> lock(set_mutex);
+    boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d wam;
     double x_axis_limited = std::min(std::max(pos(0), X_AXIS_MIN_THETA), X_AXIS_MAX_THETA);
     double y_axis_limited = std::min(std::max(pos(1), Y_AXIS_MIN_THETA), Y_AXIS_MAX_THETA);
@@ -118,20 +118,19 @@ HapticWrist::FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames, in
 }
 
 Eigen::Vector3d HapticWrist::get_position() {
-	boost::shared_lock<boost::shared_mutex> lock(state_mutex);
-	return handle_theta;
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
+    return handle_theta;
 }
 
 Eigen::Vector3d HapticWrist::get_velocity() {
-	boost::shared_lock<boost::shared_mutex> lock(state_mutex);
-	return handle_dtheta;
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
+    return handle_dtheta;
 }
 
 Eigen::Vector3d HapticWrist::get_torque() {
-	boost::shared_lock<boost::shared_mutex> lock(state_mutex);
-	return handle_torque;
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
+    return handle_torque;
 }
-
 
 void HapticWrist::run() {
     if (!running) {
@@ -150,11 +149,11 @@ void HapticWrist::stop() {
 bool HapticWrist::entryPoint() {
 
     while (running) {
-		Eigen::Vector3d local_theta_des;
-		{ 
-			boost::lock_guard<boost::mutex> lock(set_mutex);
-			local_theta_des = theta_des;
-		}
+        Eigen::Vector3d local_theta_des;
+        {
+            boost::lock_guard<boost::mutex> lock(set_mutex);
+            local_theta_des = theta_des;
+        }
 
         Eigen::Vector3d des_handle_theta = compute_pos(local_theta_des);
         Eigen::Vector3d p_error = kp_axis * (des_handle_theta - handle_theta);
@@ -224,12 +223,12 @@ bool HapticWrist::executeControl(Eigen::Vector3d motor_torque) {
     motor_curr(1) = v2.torque;
     motor_curr(2) = v3.torque;
 
-	{
-		boost::unique_lock<boost::shared_mutex> lock(state_mutex);
-		handle_theta = compute_pos(motor_theta);
-		handle_dtheta = compute_pos(motor_dtheta);
-		handle_torque = compute_torque(motor_curr);
-	}
+    {
+        boost::unique_lock<boost::shared_mutex> lock(state_mutex);
+        handle_theta = compute_pos(motor_theta);
+        handle_dtheta = compute_pos(motor_dtheta);
+        handle_torque = compute_torque(motor_curr);
+    }
     return 0;
 }
 
