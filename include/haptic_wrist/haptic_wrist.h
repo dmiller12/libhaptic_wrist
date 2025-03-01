@@ -5,7 +5,7 @@
 #include <math.h>
 
 #include <boost/thread.hpp>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 #define KT 0.34641f
 #define GR 1.0f

@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#include <cmath>
-#include <eigen3/Eigen/Dense>
 #include <math.h>
 
 #include "haptic_wrist/haptic_wrist.h"
