@@ -69,6 +69,12 @@ HapticWrist::HapticWrist() {
     cmd.feedforward_torque = 0.0;
 };
 
+HapticWrist::~HapticWrist() {
+	stop();
+	// TODO: should also break motors here
+}
+
+
 void HapticWrist::set_position(Eigen::Vector3d pos) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d wam;

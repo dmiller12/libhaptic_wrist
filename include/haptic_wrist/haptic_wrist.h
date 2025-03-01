@@ -27,6 +27,7 @@ using mt_type = Eigen::Vector3d;
 class HapticWrist {
   public:
     HapticWrist();
+    ~HapticWrist();
     void run();
     void stop();
     void set_position(Eigen::Vector3d pos);
