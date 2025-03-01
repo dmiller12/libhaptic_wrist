@@ -4,8 +4,8 @@
 #include <cmath>
 #include <math.h>
 
-#include <eigen3/Eigen/Dense>
 #include <boost/thread.hpp>
+#include <eigen3/Eigen/Dense>
 
 #define KT 0.34641f
 #define GR 1.0f
@@ -16,16 +16,23 @@
 #define MOTOR_TO_HANDLE_SCALE_FACTOR_M3 14.87
 
 namespace haptic_wrist {
+using jp_type = Eigen::Vector3d;
+using jv_type = Eigen::Vector3d;
+using jt_type = Eigen::Vector3d;
+
+using mp_type = Eigen::Vector3d;
+using mv_type = Eigen::Vector3d;
+using mt_type = Eigen::Vector3d;
 
 class HapticWrist {
   public:
     HapticWrist();
-	void run();
-	void stop();
+    void run();
+    void stop();
     void set_position(Eigen::Vector3d pos);
-	Eigen::Vector3d get_position();
-	Eigen::Vector3d get_velocity();
-	Eigen::Vector3d get_torque();
+    jp_type get_position();
+    jv_type get_velocity();
+    jt_type get_torque();
 
     Eigen::Matrix3d mtjp();
     Eigen::Matrix3d jtmp();
@@ -34,27 +41,26 @@ class HapticWrist {
     std::vector<std::shared_ptr<mjbots::moteus::Controller>> controllers;
     std::vector<mjbots::moteus::CanFdFrame> send_frames;
     std::vector<mjbots::moteus::CanFdFrame> receive_frames;
-    Eigen::Vector3d theta_des;
-    Eigen::Vector3d handle_theta;
-    Eigen::Vector3d handle_dtheta;
-    Eigen::Vector3d handle_torque;
+    jp_type theta_des;
+    jp_type handle_theta;
+    jv_type handle_dtheta;
+    jt_type handle_torque;
     mjbots::moteus::PositionMode::Command cmd;
     Eigen::Matrix3d kp_axis;
     std::shared_ptr<mjbots::moteus::Transport> transport;
     int missed_replies;
-    Eigen::VectorXd motor_curr = Eigen::VectorXd::Zero(3);
-    Eigen::Vector3d theta_cur;
 
     std::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames,
                                                            int id);
-    bool executeControl(Eigen::Vector3d);
+    bool executeControl(mt_type motor_torque);
     bool entryPoint();
-    Eigen::Vector3d compute_pos(const Eigen::VectorXd &_motor_theta);
-    Eigen::Vector3d compute_torque(const Eigen::VectorXd &motor_curr);
-	boost::atomic<bool> running{false};
-	boost::thread control_thread;
-	boost::mutex set_mutex;
-	boost::shared_mutex state_mutex;
+    jp_type compute_pos(const mp_type &motor_theta);
+    jv_type compute_vel(const mv_type &motor_dtheta);
+    jt_type compute_torque(const mt_type &motor_torque);
+    boost::atomic<bool> running{false};
+    boost::thread control_thread;
+    boost::mutex set_mutex;
+    boost::shared_mutex state_mutex;
 };
 
 } // namespace haptic_wrist
