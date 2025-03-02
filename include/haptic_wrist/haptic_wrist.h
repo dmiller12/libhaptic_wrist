@@ -33,10 +33,12 @@ class HapticWrist {
     ~HapticWrist();
     void run();
     void stop();
-    void set_position(Eigen::Vector3d pos);
+    void set_position(jp_type pos);
     jp_type get_position();
     jv_type get_velocity();
     jt_type get_torque();
+
+    void move_to(jp_type pos, double vel = 0.5, double accel = 0.5);
 
     Eigen::Matrix3d mtjp();
     Eigen::Matrix3d jtmp();
@@ -51,6 +53,7 @@ class HapticWrist {
     jt_type handle_torque;
     mjbots::moteus::PositionMode::Command cmd;
     Eigen::Matrix3d kp_axis;
+    Eigen::Matrix3d kd_axis;
     std::shared_ptr<mjbots::moteus::Transport> transport;
     int missed_replies;
 

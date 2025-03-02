@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "haptic_wrist/haptic_wrist.h"
+#include "haptic_wrist/trapezoidal_velocity_profile.h"
 
 #include <optional>
 #include <unistd.h>
@@ -20,7 +21,8 @@ namespace haptic_wrist {
 
 HapticWrist::HapticWrist() {
 
-    kp_axis << 0.03, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.1;
+    kp_axis << 0.03, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.03;
+    kd_axis << 0.003, 0.0, 0.0, 0.0, 0.006, 0.0, 0.0, 0.0, 0.003;
 
     moteus::Controller::Options options_common;
 
@@ -69,7 +71,7 @@ HapticWrist::~HapticWrist() {
     // TODO: should also break motors here
 }
 
-void HapticWrist::set_position(Eigen::Vector3d pos) {
+void HapticWrist::set_position(jp_type pos) {
     std::lock_guard<std::mutex> lock(set_mutex);
     Eigen::Vector3d wam;
     double x_axis_limited = std::min(std::max(pos(0), X_AXIS_MIN_THETA), X_AXIS_MAX_THETA);
@@ -82,7 +84,7 @@ void HapticWrist::set_position(Eigen::Vector3d pos) {
     theta_des = jtmp() * wam;
 };
 
-Eigen::Matrix3d mtjp() {
+Eigen::Matrix3d HapticWrist::mtjp() {
     Eigen::Matrix3d T;
     T << -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M1, 0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M2, 0,
         -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M1, -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M2, 0, 0, 0,
@@ -128,6 +130,25 @@ jt_type HapticWrist::get_torque() {
     return handle_torque;
 }
 
+void HapticWrist::move_to(jp_type desiredPos, double vel, double accel) {
+    jp_type startPos = get_position();
+    jp_type diff = desiredPos - startPos;
+    double distance = diff.squaredNorm();
+
+    TrapezoidalVelocityProfile profile(vel, accel, 0.0, distance);
+    auto start_time = std::chrono::steady_clock::now();
+    double elapsed_seconds = 0.0;
+    while (elapsed_seconds < profile.finalT()) {
+        auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+        elapsed_seconds = std::chrono::duration<double>(elapsed_time).count();
+        double arc_pos = profile.eval(elapsed_seconds);
+        double norm_arc_pos = arc_pos / distance;
+        jp_type goal_pos = (1.0 - norm_arc_pos) * startPos + norm_arc_pos * desiredPos;
+        set_position(goal_pos);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
 void HapticWrist::run() {
     if (!running) {
         running = true;
@@ -143,7 +164,8 @@ void HapticWrist::stop() {
 }
 
 bool HapticWrist::entryPoint() {
-
+    Eigen::Vector3d prevError = Eigen::Vector3d::Zero();
+    std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     while (running) {
         Eigen::Vector3d local_theta_des;
         {
@@ -151,11 +173,18 @@ bool HapticWrist::entryPoint() {
             local_theta_des = theta_des;
         }
 
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = now - last_time;
+        double dt = elapsed_seconds.count();
         jp_type des_handle_theta = compute_pos(local_theta_des);
-        Eigen::Vector3d p_error = kp_axis * (des_handle_theta - handle_theta);
-        p_error(0) = -1.0 * p_error(0);
-        p_error(1) = -1.0 * p_error(1);
-        mt_type feedforward_torque = jtmp() * p_error;
+        Eigen::Vector3d error = des_handle_theta - handle_theta;
+        error(0) = -1.0 * error(0);
+        error(1) = -1.0 * error(1);
+        Eigen::Vector3d derivative = (error - prevError) / dt;
+        prevError = error;
+
+        jt_type j_torque = (kp_axis * error) + (kd_axis * derivative);
+        mt_type feedforward_torque = jtmp() * j_torque;
         executeControl(feedforward_torque);
 
         // TODO: check how long to sleep for
@@ -164,12 +193,10 @@ bool HapticWrist::entryPoint() {
 
     printf("Entering fault mode!\n");
 
-    while (true) {
-        // TODO: need sleep in here
-        for (auto &c : controllers) {
-            c->SetBrake();
-        }
+    for (auto &c : controllers) {
+        c->SetBrake();
     }
+    return true;
 }
 
 bool HapticWrist::executeControl(mt_type motor_torque) {
@@ -180,7 +207,7 @@ bool HapticWrist::executeControl(mt_type motor_torque) {
         cmd.velocity = 0;
         cmd.feedforward_torque = motor_torque(i);
         cmd.kp_scale = 0;
-        cmd.kd_scale = 0.1;
+        cmd.kd_scale = 0.2;
         send_frames.push_back(controllers[i]->MakePosition(cmd));
     }
 
