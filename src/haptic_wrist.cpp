@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#include <math.h>
-
 #include "haptic_wrist/haptic_wrist.h"
 
 #include <optional>
@@ -59,7 +57,6 @@ HapticWrist::HapticWrist() {
         c->SetStop();
     }
 
-    moteus::PositionMode::Command cmd;
     cmd.position = 0.0;
     cmd.velocity = 0.0;
     cmd.kp_scale = 1.0;
@@ -68,13 +65,12 @@ HapticWrist::HapticWrist() {
 };
 
 HapticWrist::~HapticWrist() {
-	stop();
-	// TODO: should also break motors here
+    stop();
+    // TODO: should also break motors here
 }
 
-
 void HapticWrist::set_position(Eigen::Vector3d pos) {
-    boost::lock_guard<boost::mutex> lock(set_mutex);
+    std::lock_guard<std::mutex> lock(set_mutex);
     Eigen::Vector3d wam;
     double x_axis_limited = std::min(std::max(pos(0), X_AXIS_MIN_THETA), X_AXIS_MAX_THETA);
     double y_axis_limited = std::min(std::max(pos(1), Y_AXIS_MIN_THETA), Y_AXIS_MAX_THETA);
@@ -118,24 +114,24 @@ HapticWrist::FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames, in
 }
 
 jp_type HapticWrist::get_position() {
-    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
+    std::shared_lock<std::shared_mutex> lock(state_mutex);
     return handle_theta;
 }
 
 jv_type HapticWrist::get_velocity() {
-    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
+    std::shared_lock<std::shared_mutex> lock(state_mutex);
     return handle_dtheta;
 }
 
 jt_type HapticWrist::get_torque() {
-    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
+    std::shared_lock<std::shared_mutex> lock(state_mutex);
     return handle_torque;
 }
 
 void HapticWrist::run() {
     if (!running) {
         running = true;
-        control_thread = boost::thread(&HapticWrist::entryPoint, this);
+        control_thread = std::thread(&HapticWrist::entryPoint, this);
     }
 }
 
@@ -151,7 +147,7 @@ bool HapticWrist::entryPoint() {
     while (running) {
         Eigen::Vector3d local_theta_des;
         {
-            boost::lock_guard<boost::mutex> lock(set_mutex);
+            std::lock_guard<std::mutex> lock(set_mutex);
             local_theta_des = theta_des;
         }
 
@@ -163,7 +159,7 @@ bool HapticWrist::entryPoint() {
         executeControl(feedforward_torque);
 
         // TODO: check how long to sleep for
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     printf("Entering fault mode!\n");
@@ -226,7 +222,7 @@ bool HapticWrist::executeControl(mt_type motor_torque) {
     motor_curr(2) = v3.torque;
 
     {
-        boost::unique_lock<boost::shared_mutex> lock(state_mutex);
+        std::unique_lock<std::shared_mutex> lock(state_mutex);
         handle_theta = compute_pos(motor_theta);
         handle_dtheta = compute_vel(motor_dtheta);
         handle_torque = compute_torque(motor_curr);

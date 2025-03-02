@@ -11,8 +11,7 @@ FetchContent_MakeAvailable(moteus)
 
 find_package(Eigen3 REQUIRED)
 find_package(orocos_kdl REQUIRED)
-find_package(Boost REQUIRED COMPONENTS thread)
 
 add_library(haptic_wrist haptic_wrist.cpp)
 target_include_directories(haptic_wrist PUBLIC ../include ${EIGEN3_INCLUDE_DIR})
-target_link_libraries(haptic_wrist orocos_kdl moteus::cpp Boost:thread)
+target_link_libraries(haptic_wrist orocos_kdl moteus::cpp)

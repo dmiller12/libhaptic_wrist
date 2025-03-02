@@ -4,8 +4,11 @@
 #include <cmath>
 #include <math.h>
 
-#include <boost/thread.hpp>
 #include <Eigen/Dense>
+
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
 
 #define KT 0.34641f
 #define GR 1.0f
@@ -58,10 +61,10 @@ class HapticWrist {
     jp_type compute_pos(const mp_type &motor_theta);
     jv_type compute_vel(const mv_type &motor_dtheta);
     jt_type compute_torque(const mt_type &motor_torque);
-    boost::atomic<bool> running{false};
-    boost::thread control_thread;
-    boost::mutex set_mutex;
-    boost::shared_mutex state_mutex;
+    std::atomic<bool> running{false};
+    std::thread control_thread;
+    std::mutex set_mutex;
+    std::shared_mutex state_mutex;
 };
 
 } // namespace haptic_wrist
