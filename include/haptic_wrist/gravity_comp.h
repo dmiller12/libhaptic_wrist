@@ -20,4 +20,5 @@ class GravityComp {
     Eigen::Matrix4d world_to_base;
     std::vector<DHParameter> dh;
     Eigen::Matrix3d mus;
+    Eigen::Matrix4d computeTransform(DHParameter dh, double theta);
 };
