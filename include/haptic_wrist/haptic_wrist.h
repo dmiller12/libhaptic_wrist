@@ -9,6 +9,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
+#include "haptic_wrist/types.h"
+#include "haptic_wrist/gravity_comp.h"
 
 #define KT 0.34641f
 #define GR 1.0f
@@ -19,13 +21,6 @@
 #define MOTOR_TO_HANDLE_SCALE_FACTOR_M3 14.87
 
 namespace haptic_wrist {
-using jp_type = Eigen::Vector3d;
-using jv_type = Eigen::Vector3d;
-using jt_type = Eigen::Vector3d;
-
-using mp_type = Eigen::Vector3d;
-using mv_type = Eigen::Vector3d;
-using mt_type = Eigen::Vector3d;
 
 class HapticWrist {
   public:
@@ -34,6 +29,7 @@ class HapticWrist {
     void run();
     void stop();
     void set_position(jp_type pos);
+    void gravity_compensate(bool = true);
     jp_type get_position();
     jv_type get_velocity();
     jt_type get_torque();
@@ -56,6 +52,8 @@ class HapticWrist {
     Eigen::Matrix3d kd_axis;
     std::shared_ptr<mjbots::moteus::Transport> transport;
     int missed_replies;
+    bool gravity;
+    GravityComp gravity_compensator;
 
     std::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames,
                                                            int id);

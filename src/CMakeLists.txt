@@ -12,7 +12,7 @@ FetchContent_MakeAvailable(moteus)
 find_package(Eigen3 REQUIRED)
 find_package(orocos_kdl REQUIRED)
 
-add_library(haptic_wrist haptic_wrist.cpp trapezoidal_velocity_profile.cpp)
+add_library(haptic_wrist haptic_wrist.cpp trapezoidal_velocity_profile.cpp gravity_comp.cpp)
 target_include_directories(haptic_wrist PUBLIC ../include ${EIGEN3_INCLUDE_DIR} ${orocos_kdl_INCLUDE_DIRS})
 target_link_libraries(haptic_wrist PUBLIC ${orocos_kdl_LIBRARIES} moteus::cpp pthread)
 

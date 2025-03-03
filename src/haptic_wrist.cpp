@@ -19,7 +19,14 @@ using namespace mjbots;
 
 namespace haptic_wrist {
 
-HapticWrist::HapticWrist() {
+HapticWrist::HapticWrist() : gravity(false) {
+    
+    std::vector<DHParameter> dh;
+    dh.push_back({0, 0, 0.04});
+    dh.push_back({0.5, 0, 0.415});
+    dh.push_back({-0.5, 0, 0});
+    Eigen::Matrix3d mus = Eigen::Matrix3d::Zero();
+    gravity_compensator = GravityComp(dh, mus, Eigen::Matrix4d::Identity());
 
     kp_axis << 0.03, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.03;
     kd_axis << 0.003, 0.0, 0.0, 0.0, 0.006, 0.0, 0.0, 0.0, 0.003;
@@ -185,6 +192,9 @@ bool HapticWrist::entryPoint() {
 
         jt_type j_torque = (kp_axis * error) + (kd_axis * derivative);
         mt_type feedforward_torque = jtmp() * j_torque;
+        if (gravity) {
+            // add gravity comp term
+        }
         executeControl(feedforward_torque);
 
         // TODO: check how long to sleep for

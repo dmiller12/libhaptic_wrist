@@ -20,5 +20,4 @@ class TrapezoidalVelocityProfile {
     double s_startdown;
     double time_end;
     double s_end;
-    
 };
