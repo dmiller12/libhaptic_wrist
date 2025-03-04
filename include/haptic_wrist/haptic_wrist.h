@@ -54,6 +54,7 @@ class HapticWrist {
     int missed_replies;
     bool gravity;
     GravityComp gravity_compensator;
+    Kinematics kinematics;
 
     std::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames,
                                                            int id);

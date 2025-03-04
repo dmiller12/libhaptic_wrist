@@ -25,8 +25,9 @@ HapticWrist::HapticWrist() : gravity(false) {
     dh.push_back({0, 0, 0.04});
     dh.push_back({0.5, 0, 0.415});
     dh.push_back({-0.5, 0, 0});
+    kinematics = Kinematics(dh, Eigen::Matrix4d::Identity());
     Eigen::Matrix3d mus = Eigen::Matrix3d::Zero();
-    gravity_compensator = GravityComp(dh, mus, Eigen::Matrix4d::Identity());
+    gravity_compensator = GravityComp(mus);
 
     kp_axis << 0.03, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.03;
     kd_axis << 0.003, 0.0, 0.0, 0.0, 0.006, 0.0, 0.0, 0.0, 0.003;
