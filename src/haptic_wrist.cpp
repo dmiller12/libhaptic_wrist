@@ -3,7 +3,7 @@
 #include "haptic_wrist/haptic_wrist.h"
 #include "haptic_wrist/trapezoidal_velocity_profile.h"
 
-#include <optional>
+#include <boost/optional.hpp>
 #include <unistd.h>
 
 const double X_AXIS_MIN_THETA = -M_PI / 2;
@@ -20,13 +20,16 @@ using namespace mjbots;
 namespace haptic_wrist {
 
 HapticWrist::HapticWrist() : gravity(false) {
-    
+
     std::vector<DHParameter> dh;
-    dh.push_back({0, 0, 0.04});
-    dh.push_back({0.5, 0, 0.415});
-    dh.push_back({-0.5, 0, 0});
+    dh.push_back({-0.5, 0, 0.455});
+    dh.push_back({0.5, 0, 0});
+    dh.push_back({0, 0, 0});
     kinematics = Kinematics(dh, Eigen::Matrix4d::Identity());
-    Eigen::Matrix3d mus = Eigen::Matrix3d::Zero();
+    Eigen::Matrix3d mus;
+    mus.row(0) << 0.000198307, 7.29762e-06, 0.000133121;
+    mus.row(1) << 2.75048e-05, 6.09339e-05, -6.68517e-05;
+    mus.row(2) << -3.95954e-05, -6.08703e-05, 1.27033e-05;
     gravity_compensator = GravityComp(mus);
 
     kp_axis << 0.03, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.03;
@@ -80,7 +83,7 @@ HapticWrist::~HapticWrist() {
 }
 
 void HapticWrist::set_position(jp_type pos) {
-    std::lock_guard<std::mutex> lock(set_mutex);
+    boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d wam;
     double x_axis_limited = std::min(std::max(pos(0), X_AXIS_MIN_THETA), X_AXIS_MAX_THETA);
     double y_axis_limited = std::min(std::max(pos(1), Y_AXIS_MIN_THETA), Y_AXIS_MAX_THETA);
@@ -90,7 +93,13 @@ void HapticWrist::set_position(jp_type pos) {
     wam(2) = z_axis_limited;
 
     theta_des = jtmp() * wam;
+    has_setpoint.store(true);
 };
+
+void HapticWrist::set_wrist_to_base(Eigen::Matrix4d transform) {
+    boost::lock_guard<boost::mutex> lock(set_mutex);
+    baseToWrist = transform;
+}
 
 Eigen::Matrix3d HapticWrist::mtjp() {
     Eigen::Matrix3d T;
@@ -113,7 +122,7 @@ jv_type HapticWrist::compute_vel(const mv_type &motor_dtheta) { return mtjp() * 
 
 jt_type HapticWrist::compute_torque(const mt_type &motor_torque) { return KT * mtjp() * motor_torque; }
 
-std::optional<mjbots::moteus::Query::Result>
+boost::optional<mjbots::moteus::Query::Result>
 HapticWrist::FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames, int id) {
     for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
         if (it->source == id) {
@@ -124,17 +133,17 @@ HapticWrist::FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames, in
 }
 
 jp_type HapticWrist::get_position() {
-    std::shared_lock<std::shared_mutex> lock(state_mutex);
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
     return handle_theta;
 }
 
 jv_type HapticWrist::get_velocity() {
-    std::shared_lock<std::shared_mutex> lock(state_mutex);
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
     return handle_dtheta;
 }
 
 jt_type HapticWrist::get_torque() {
-    std::shared_lock<std::shared_mutex> lock(state_mutex);
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex);
     return handle_torque;
 }
 
@@ -153,9 +162,11 @@ void HapticWrist::move_to(jp_type desiredPos, double vel, double accel) {
         double norm_arc_pos = arc_pos / distance;
         jp_type goal_pos = (1.0 - norm_arc_pos) * startPos + norm_arc_pos * desiredPos;
         set_position(goal_pos);
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
+
+void HapticWrist::gravity_compensate(bool compensate) { gravity = compensate; }
 
 void HapticWrist::run() {
     if (!running) {
@@ -165,41 +176,60 @@ void HapticWrist::run() {
 }
 
 void HapticWrist::stop() {
-    running = false;
+    running.store(false);
     if (control_thread.joinable()) {
         control_thread.join();
+    }
+}
+
+void HapticWrist::hold(bool hold) {
+    if (hold) {
+        set_position(get_position());
+    } else {
+        has_setpoint.store(false);
     }
 }
 
 bool HapticWrist::entryPoint() {
     Eigen::Vector3d prevError = Eigen::Vector3d::Zero();
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
-    while (running) {
+    mt_type feedforward_torque;
+    while (running.load()) {
+        feedforward_torque = Eigen::Vector3d::Zero();
         Eigen::Vector3d local_theta_des;
         {
-            std::lock_guard<std::mutex> lock(set_mutex);
+            boost::lock_guard<boost::mutex> lock(set_mutex);
             local_theta_des = theta_des;
         }
 
         auto now = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed_seconds = now - last_time;
         double dt = elapsed_seconds.count();
-        jp_type des_handle_theta = compute_pos(local_theta_des);
-        Eigen::Vector3d error = des_handle_theta - handle_theta;
-        error(0) = -1.0 * error(0);
-        error(1) = -1.0 * error(1);
-        Eigen::Vector3d derivative = (error - prevError) / dt;
-        prevError = error;
 
-        jt_type j_torque = (kp_axis * error) + (kd_axis * derivative);
-        mt_type feedforward_torque = jtmp() * j_torque;
+        if (has_setpoint.load()) {
+            jp_type des_handle_theta = compute_pos(local_theta_des);
+            Eigen::Vector3d error = des_handle_theta - handle_theta;
+            error(0) = -1.0 * error(0);
+            error(1) = -1.0 * error(1);
+            Eigen::Vector3d derivative = (error - prevError) / dt;
+            prevError = error;
+
+            jt_type j_torque = (kp_axis * error) + (kd_axis * derivative);
+            feedforward_torque = jtmp() * j_torque;
+        }
         if (gravity) {
-            // add gravity comp term
+            Eigen::Matrix4d local_wrist_to_base;
+            {
+                boost::lock_guard<boost::mutex> lock(set_mutex);
+                local_wrist_to_base = baseToWrist;
+            }
+            std::array<Kin, 3> kin = kinematics.eval(handle_theta, local_wrist_to_base);
+            auto g_torque = gravity_compensator.eval(kin);
+            std::cout << "comp_g\n" << g_torque << std::endl;
+            // feedforward_torque += (1/KT) * jtmp() * g_torque;
+            // feedforward_torque += jtmp() * g_torque;
         }
         executeControl(feedforward_torque);
-
-        // TODO: check how long to sleep for
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     printf("Entering fault mode!\n");
@@ -260,7 +290,7 @@ bool HapticWrist::executeControl(mt_type motor_torque) {
     motor_curr(2) = v3.torque;
 
     {
-        std::unique_lock<std::shared_mutex> lock(state_mutex);
+        boost::unique_lock<boost::shared_mutex> lock(state_mutex);
         handle_theta = compute_pos(motor_theta);
         handle_dtheta = compute_vel(motor_dtheta);
         handle_torque = compute_torque(motor_curr);

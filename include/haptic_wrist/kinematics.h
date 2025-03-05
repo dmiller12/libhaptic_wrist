@@ -1,6 +1,7 @@
 #pragma once
 
 #include "haptic_wrist/types.h"
+#include <vector>
 
 struct DHParameter {
     double alpha_pi;

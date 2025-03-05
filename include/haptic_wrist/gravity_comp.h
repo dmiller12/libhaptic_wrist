@@ -5,7 +5,7 @@
 
 class GravityComp {
   public:
-    GravityComp() = default;
+    GravityComp() : mus(Eigen::Matrix3d::Zero()) {};
     GravityComp(Eigen::Matrix3d mus);
     haptic_wrist::jt_type eval(std::array<Kin, 3> kin);
     double gravity = -9.81;

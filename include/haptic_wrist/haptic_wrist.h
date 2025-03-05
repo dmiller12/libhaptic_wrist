@@ -6,11 +6,12 @@
 
 #include <Eigen/Dense>
 
-#include <mutex>
-#include <shared_mutex>
-#include <thread>
-#include "haptic_wrist/types.h"
 #include "haptic_wrist/gravity_comp.h"
+#include "haptic_wrist/types.h"
+#include <boost/optional.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <thread>
 
 #define KT 0.34641f
 #define GR 1.0f
@@ -29,7 +30,9 @@ class HapticWrist {
     void run();
     void stop();
     void set_position(jp_type pos);
-    void gravity_compensate(bool = true);
+    void gravity_compensate(bool compensate = true);
+    void set_wrist_to_base(Eigen::Matrix4d transform);
+    void hold(bool hold);
     jp_type get_position();
     jv_type get_velocity();
     jt_type get_torque();
@@ -52,21 +55,23 @@ class HapticWrist {
     Eigen::Matrix3d kd_axis;
     std::shared_ptr<mjbots::moteus::Transport> transport;
     int missed_replies;
-    bool gravity;
+    std::atomic<bool> gravity;
     GravityComp gravity_compensator;
     Kinematics kinematics;
 
-    std::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames,
-                                                           int id);
+    boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames,
+                                                             int id);
     bool executeControl(mt_type motor_torque);
     bool entryPoint();
     jp_type compute_pos(const mp_type &motor_theta);
     jv_type compute_vel(const mv_type &motor_dtheta);
     jt_type compute_torque(const mt_type &motor_torque);
+    Eigen::Matrix4d baseToWrist = Eigen::Matrix4d::Identity();
     std::atomic<bool> running{false};
+    std::atomic<bool> has_setpoint{false};
     std::thread control_thread;
-    std::mutex set_mutex;
-    std::shared_mutex state_mutex;
+    boost::mutex set_mutex;
+    boost::shared_mutex state_mutex;
 };
 
 } // namespace haptic_wrist
