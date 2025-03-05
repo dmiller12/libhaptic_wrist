@@ -24,12 +24,12 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<haptic_wrist::jp_type> poses;
     poses.push_back({0, 0, 0});
     poses.push_back({0, 0, 0});
-    poses.push_back({M_PI/4.0, 0, 0});
-    poses.push_back({-M_PI/4.0, 0, 0});
     poses.push_back({0, M_PI/4.0, 0});
     poses.push_back({0, -M_PI/4.0, 0});
     poses.push_back({0, 0, M_PI/4.0});
     poses.push_back({0, 0, -M_PI/4.0});
+    poses.push_back({M_PI/4.0, 0, 0});
+    poses.push_back({-M_PI/4.0, 0, 0});
     poses.push_back({-M_PI/4.0, -M_PI/4.0, -M_PI/4.0});
     std::vector<jp_type> wam_poses;
     jp_type wamP1;
@@ -75,7 +75,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<Eigen::Matrix4d> base_to_world;
 
     std::vector<DHParameter> dh;
-    dh.push_back({-0.5, 0, 0.455});
+    dh.push_back({-0.5, 0, 0.520});
     dh.push_back({0.5, 0, 0});
     dh.push_back({0, 0, 0});
     Kinematics kinematics(dh, Eigen::Matrix4d::Identity());
@@ -93,6 +93,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::cout << "Moving to\n" << poses[i] << std::endl;
 
         hw.move_to(poses[i]);
+        sleep(1);
 
         Eigen::Matrix<double, NUM_POINTS, 3> jp;
         Eigen::Matrix<double, NUM_POINTS, 3> jt;
@@ -105,12 +106,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         }
 
         positions.push_back(jp.colwise().mean());
-        auto mean_jt = jt.colwise().mean();
-        Eigen::Vector3d jt_rearranged;
-        jt_rearranged(0) = mean_jt(2);
-        jt_rearranged(1) = mean_jt(0);
-        jt_rearranged(2) = mean_jt(1);
-        torques.push_back(jt_rearranged);
+        torques.push_back(jt.colwise().mean());
     }
     hw.move_to({0, 0, 0});
     wam.moveHome();

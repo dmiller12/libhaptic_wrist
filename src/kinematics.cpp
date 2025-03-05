@@ -5,17 +5,13 @@ Kinematics::Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d world_to_bas
 
 std::array<Kin, 3> Kinematics::eval(haptic_wrist::jp_type pos, Eigen::Matrix4d base_to_wrist) {
 
-    haptic_wrist::jp_type pos_rearranged;
-    pos_rearranged(0) = pos(2);
-    pos_rearranged(1) = pos(0);
-    pos_rearranged(2) = pos(1);
     std::array<Kin, 3> kin;
     Eigen::Matrix4d in_world_frame;
     std::vector<Eigen::Vector3d> link_grav;
     in_world_frame = world_to_base * base_to_wrist;
 
     for (size_t i = 0; i < dh_params.size(); i++) {
-        Eigen::Matrix4d transform = computeTransform(dh_params[i], pos_rearranged(i));
+        Eigen::Matrix4d transform = computeTransform(dh_params[i], pos(i));
         in_world_frame = in_world_frame * transform;
         kin[i] = Kin{transform, in_world_frame};
     }

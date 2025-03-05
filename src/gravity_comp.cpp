@@ -16,12 +16,7 @@ haptic_wrist::jt_type GravityComp::eval(std::array<Kin, 3> kin) {
         jt(i) = prev_torque(2);
     }
 
-    haptic_wrist::jt_type jt_rearranged;
-    jt_rearranged(0) = jt(1);
-    jt_rearranged(1) = jt(2);
-    jt_rearranged(2) = jt(0);
-
-    return jt_rearranged;
+    return jt;
 }
 
 std::array<Eigen::Vector3d, 3> GravityComp::computeGravity(std::array<Kin, 3> kin) {

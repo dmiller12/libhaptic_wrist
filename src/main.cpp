@@ -7,13 +7,13 @@ int main(int arc, char** argv) {
     haptic_wrist::HapticWrist hw;
     
     haptic_wrist::jp_type pos;
-    // pos << 0.0, 0.0, 0.0;
-    // hw.set_position(pos);
-    hw.gravity_compensate(true);
+    pos << 0.0, 0.0, 0.0;
+    hw.set_position(pos);
+    hw.gravity_compensate(false);
     hw.run();
 
-    // sleep(1);
-    // pos << 0.5, 0.0, 0.0;
+    sleep(1);
+    // pos << 0.0, -0.5, 0.0;
     // hw.move_to(pos);
     //
     // sleep(1);
@@ -48,10 +48,11 @@ int main(int arc, char** argv) {
     // hw.move_to(pos);
     // std::cout << hw.get_position() << std::endl;
 
-    // while (true) {
-    //     std::cout << hw.get_position() << std::endl;
-    //     sleep(1);
-    // }
+    std::cout << "Pos\n" <<hw.get_position() << std::endl;
+    while (true) {
+        std::cout << "Pos\n" <<hw.get_position() << std::endl;
+        sleep(1);
+    }
     sleep(10);
 
     std::cout << "acutal torque\n" <<  hw.get_torque() << std::endl;
