@@ -68,8 +68,6 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
     assert(poses.size() == wam_poses.size());
 
-    // TODO: assert they are the same size
-
     std::vector<haptic_wrist::jp_type> positions;
     std::vector<haptic_wrist::jt_type> torques;
     std::vector<Eigen::Matrix4d> base_to_world;
