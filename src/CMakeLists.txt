@@ -26,8 +26,9 @@ target_include_directories(haptic_wrist PUBLIC
   $<INSTALL_INTERFACE:include>
   ${EIGEN3_INCLUDE_DIR}
 )
-target_link_libraries(haptic_wrist PRIVATE
+target_link_libraries(haptic_wrist PUBLIC
   $<BUILD_INTERFACE:moteus::cpp>
+  PRIVATE
   $<BUILD_INTERFACE:yaml-cpp::yaml-cpp>
   pthread
   Boost::thread
@@ -40,8 +41,8 @@ install(TARGETS haptic_wrist
   RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}../include/haptic_wrist/ 
-  DESTINATION include
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/haptic_wrist/ 
+  DESTINATION include/haptic_wrist
 )
 
 install(EXPORT haptic_wristTargets
