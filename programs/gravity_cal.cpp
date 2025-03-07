@@ -1,5 +1,8 @@
 #include "haptic_wrist/haptic_wrist.h"
+#include "haptic_wrist/kinematics.h"
+#include "haptic_wrist/gravity_comp.h"
 #include <barrett/units.h>
+#include <thread>
 
 #include <barrett/standard_main_function.h>
 #define NUM_POINTS 2000
