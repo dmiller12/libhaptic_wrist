@@ -20,7 +20,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(yaml-cpp)
 
 find_package(Eigen3 REQUIRED)
-find_package(Boost COMPONENTS thread REQUIRED)
+find_package(Boost COMPONENTS thread filesystem REQUIRED)
 
 add_library(haptic_wrist SHARED)
 target_sources(haptic_wrist
@@ -37,7 +37,7 @@ target_include_directories(haptic_wrist PUBLIC
   ${EIGEN3_INCLUDE_DIR}
 )
 target_link_libraries(haptic_wrist PUBLIC
-  Boost::thread pthread
+  Boost::thread Boost::filesystem pthread
 )
 
 target_link_libraries(haptic_wrist PRIVATE
@@ -51,27 +51,41 @@ install(TARGETS haptic_wrist
   RUNTIME DESTINATION bin
 )
 
-install(EXPORT haptic_wristTargets
-  DESTINATION lib/cmake/haptic_wrist
-)
-
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/haptic_wrist/ 
   DESTINATION include/haptic_wrist
 )
 
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/
+    DESTINATION /etc/haptic_wrist
+    FILES_MATCHING PATTERN "*.yaml"  # Adjust the pattern if needed
+    PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	GROUP_READ GROUP_WRITE GROUP_EXECUTE
+	WORLD_READ WORLD_WRITE WORLD_EXECUTE
+)
+
+install(EXPORT haptic_wristTargets
+  DESTINATION lib/cmake/haptic_wrist
+)
+
+
 export(TARGETS haptic_wrist FILE haptic_wristTargets.cmake)
 
-# include(CMakePackageConfigHelpers)
-# write_basic_package_version_file(
-#   ${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfigVersion.cmake
-#   VERSION "${PROJECT_VERSION}"
-#   COMPATIBILITY AnyNewerVersion
-# )
-#
-# install(FILES
-#   ${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfig.cmake
-#   ${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfigVersion.cmake
-#   DESTINATION lib/cmake/haptic_wrist
-# )
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/haptic_wristConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfig.cmake
+  INSTALL_DESTINATION lib/cmake/haptic_wrist
+)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/haptic_wristConfigVersion.cmake
+  DESTINATION lib/cmake/haptic_wrist
+)
 
 add_subdirectory(programs)
