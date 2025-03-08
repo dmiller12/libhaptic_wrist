@@ -3,6 +3,7 @@
 #include "haptic_wrist/trapezoidal_velocity_profile.h"
 #include "haptic_wrist_impl.h"
 
+#include "utils.h"
 #include "yaml-cpp/yaml.h"
 #include <boost/optional.hpp>
 #include <unistd.h>
@@ -30,7 +31,12 @@ HapticWristImpl::HapticWristImpl() : gravity(false) {
         0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M2, 0, -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M1,
         -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M2, 0;
 
-    YAML::Node yaml_config = YAML::LoadFile("../config/haptic_wrist.yaml");
+    std::string config_dir = get_config_directory();
+    if (config_dir.empty()) {
+        throw std::runtime_error("No valid configuration directory found.");
+    }
+    boost::filesystem::path config_file = boost::filesystem::path(config_dir) / "haptic_wrist.yaml";
+    YAML::Node yaml_config = YAML::LoadFile(config_file.string());
     std::vector<DHParameter> dh;
     for (size_t i = 0; i < 3; i++) {
         DHParameter dh_param;
@@ -41,7 +47,8 @@ HapticWristImpl::HapticWristImpl() : gravity(false) {
     }
 
     kinematics = Kinematics(dh, Eigen::Matrix4d::Identity());
-    YAML::Node mu_config = YAML::LoadFile("../config/gravity_cal.yaml");
+    config_file = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
+    YAML::Node mu_config = YAML::LoadFile(config_file.string());
     Eigen::Matrix3d mus;
     for (size_t row = 0; row < 3; row++) {
         for (size_t col = 0; col < 3; col++) {

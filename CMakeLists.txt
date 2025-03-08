@@ -30,6 +30,7 @@ target_sources(haptic_wrist
 	src/trapezoidal_velocity_profile.cpp
 	src/gravity_comp.cpp
 	src/kinematics.cpp
+	src/utils.cpp
 )
 target_include_directories(haptic_wrist PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
