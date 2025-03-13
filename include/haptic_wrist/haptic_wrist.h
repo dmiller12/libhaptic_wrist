@@ -20,13 +20,13 @@ class HapticWrist {
     ~HapticWrist();
     void run();
     void stop();
-    void set_position(const jp_type &pos);
-    void gravity_compensate(bool compensate = true);
-    void set_wrist_to_base(const Eigen::Matrix4d &transform);
+    void setPosition(const jp_type &pos);
+    void gravityCompensate(bool compensate = true);
+    void setWristToBase(const Eigen::Matrix4d &transform);
     void hold(bool hold);
-    jp_type get_position();
-    jv_type get_velocity();
-    jt_type get_torque();
+    jp_type getPosition();
+    jv_type getVelocity();
+    jt_type getTorque();
 
     void moveTo(const jp_type &pos, double vel = 0.5, double accel = 0.5);
 

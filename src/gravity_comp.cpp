@@ -20,7 +20,8 @@ haptic_wrist::jt_type GravityComp::eval(std::array<Kin, 3> kin) {
 }
 
 std::array<Eigen::Vector3d, 3> GravityComp::computeGravity(std::array<Kin, 3> kin) {
-    Eigen::Vector3d gravityBase(0, 0, -9.81);
+    Eigen::Vector3d gravityBase;
+    gravityBase << 0, 0, -9.81;
     std::array<Eigen::Vector3d, 3> grav;
     for (size_t i = 0; i < kin.size(); i++) {
 

@@ -19,13 +19,16 @@ class ToolFrameCb : public barrett::systems::System, public barrett::systems::Si
     virtual void operate() {
 
         auto wamPose = this->input.getValue();
-        hw->set_wrist_to_base(posQuatToTransform(boost::get<0>(wamPose), boost::get<1>(wamPose)));
+        hw->setWristToBase(posQuatToTransform(boost::get<0>(wamPose), boost::get<1>(wamPose)));
     }
     Eigen::Matrix4d posQuatToTransform(const Eigen::Vector3d &position, const Eigen::Quaterniond &quaternion) {
         Eigen::Matrix4d transformation = Eigen::Matrix4d::Identity();
 
-        transformation.block<3, 3>(0, 0) = quaternion.toRotationMatrix();
-        transformation.block<3, 1>(0, 3) = position;
+        Eigen::Matrix3d R = quaternion.toRotationMatrix().transpose();
+        transformation.block<3, 3>(0, 0) = R;
+
+        // Set translation
+        transformation.block<3, 1>(0, 3) = -R * position;
 
         return transformation;
     }
@@ -40,13 +43,18 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     wam.gravityCompensate();
 
     haptic_wrist::HapticWrist hw;
-    hw.gravity_compensate(true);
+    hw.gravityCompensate(true);
     hw.run();
 
     ToolFrameCb toolframeCb(&hw);
 
     barrett::systems::connect(wam.toolPose.output, toolframeCb.input);
     pm.getExecutionManager()->startManaging(toolframeCb);
+
+    while (true) {
+        std::cout << "position\n" << hw.getPosition() << std::endl;
+        sleep(1);
+    }
 
     pm.getSafetyModule()->waitForMode(barrett::SafetyModule::IDLE);
 

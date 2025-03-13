@@ -110,7 +110,7 @@ HapticWristImpl::~HapticWristImpl() {
     // TODO: should also break motors here
 }
 
-void HapticWristImpl::set_position(const jp_type &pos) {
+void HapticWristImpl::setPosition(const jp_type &pos) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d jp_limited;
     double j1_limited = std::min(std::max(pos(0), J1_MIN_THETA), J1_MAX_THETA);
@@ -124,7 +124,7 @@ void HapticWristImpl::set_position(const jp_type &pos) {
     has_setpoint.store(true);
 };
 
-void HapticWristImpl::set_wrist_to_base(const Eigen::Matrix4d &transform) {
+void HapticWristImpl::setWristToBase(const Eigen::Matrix4d &transform) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     baseToWrist = transform;
 }
@@ -145,23 +145,23 @@ HapticWristImpl::FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames
     return {};
 }
 
-jp_type HapticWristImpl::get_position() {
+jp_type HapticWristImpl::getPosition() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex);
     return handle_theta;
 }
 
-jv_type HapticWristImpl::get_velocity() {
+jv_type HapticWristImpl::getVelocity() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex);
     return handle_dtheta;
 }
 
-jt_type HapticWristImpl::get_torque() {
+jt_type HapticWristImpl::getTorque() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex);
     return handle_torque;
 }
 
 void HapticWristImpl::moveTo(const jp_type &desiredPos, double vel, double accel) {
-    jp_type startPos = get_position();
+    jp_type startPos = getPosition();
     jp_type diff = desiredPos - startPos;
     double distance = diff.squaredNorm();
 
@@ -174,12 +174,12 @@ void HapticWristImpl::moveTo(const jp_type &desiredPos, double vel, double accel
         double arc_pos = profile.eval(elapsed_seconds);
         double norm_arc_pos = arc_pos / distance;
         jp_type goal_pos = (1.0 - norm_arc_pos) * startPos + norm_arc_pos * desiredPos;
-        set_position(goal_pos);
+        setPosition(goal_pos);
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
-void HapticWristImpl::gravity_compensate(bool compensate) { gravity = compensate; }
+void HapticWristImpl::gravityCompensate(bool compensate) { gravity = compensate; }
 
 void HapticWristImpl::run() {
     if (!running) {
@@ -197,7 +197,7 @@ void HapticWristImpl::stop() {
 
 void HapticWristImpl::hold(bool hold) {
     if (hold) {
-        set_position(get_position());
+        setPosition(getPosition());
     } else {
         has_setpoint.store(false);
     }
