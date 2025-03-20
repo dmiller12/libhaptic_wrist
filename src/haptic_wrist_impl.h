@@ -1,8 +1,8 @@
 #pragma once
 
+#include "moteus.h"
 #include <cmath>
 #include <math.h>
-#include "moteus.h"
 
 #include <Eigen/Dense>
 
@@ -27,15 +27,15 @@ class HapticWristImpl {
     ~HapticWristImpl();
     void run();
     void stop();
-    void setPosition(const jp_type &pos);
+    void setPosition(const jp_type& pos);
     void gravityCompensate(bool compensate = true);
-    void setWristToBase(const Eigen::Matrix4d &transform);
+    void setWristToBase(const Eigen::Matrix4d& transform);
     void hold(bool hold);
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
 
-    void moveTo(const jp_type &pos, double vel = 0.5, double accel = 0.5);
+    void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
 
   private:
     std::vector<std::shared_ptr<mjbots::moteus::Controller>> controllers;
@@ -57,13 +57,13 @@ class HapticWristImpl {
     static constexpr double radiansPerRotation = 2.0 * M_PI;
     Eigen::Matrix3d jtmp_matrix;
     Eigen::Matrix3d mtjp_matrix;
-    boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames,
+    boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame>& frames,
                                                              int id);
-    bool executeControl(const mt_type &motor_torque);
+    bool executeControl(const mt_type& motor_torque);
     bool entryPoint();
-    jp_type compute_pos(const mp_type &motor_theta);
-    jv_type compute_vel(const mv_type &motor_dtheta);
-    jt_type compute_torque(const mt_type &motor_torque);
+    jp_type compute_pos(const mp_type& motor_theta);
+    jv_type compute_vel(const mv_type& motor_dtheta);
+    jt_type compute_torque(const mt_type& motor_torque);
     Eigen::Matrix4d baseToWrist = Eigen::Matrix4d::Identity();
     std::atomic<bool> running{false};
     std::atomic<bool> has_setpoint{false};

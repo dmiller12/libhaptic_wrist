@@ -1,6 +1,8 @@
 #include "haptic_wrist/gravity_comp.h"
 
-GravityComp::GravityComp(Eigen::Matrix3d mus) : mus(mus) {}
+GravityComp::GravityComp(Eigen::Matrix3d mus)
+    : mus(mus) {
+}
 
 haptic_wrist::jt_type GravityComp::eval(std::array<Kin, 3> kin) {
 

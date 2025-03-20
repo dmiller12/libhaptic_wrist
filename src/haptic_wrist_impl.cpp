@@ -8,7 +8,6 @@
 #include <boost/optional.hpp>
 #include <unistd.h>
 
-// TODO: confirm correct
 const double J1_MIN_THETA = -1.5;
 const double J1_MAX_THETA = 1.0;
 
@@ -22,7 +21,8 @@ using namespace mjbots;
 
 namespace haptic_wrist {
 
-HapticWristImpl::HapticWristImpl() : gravity(false) {
+HapticWristImpl::HapticWristImpl()
+    : gravity(false) {
 
     jtmp_matrix << 0, -MOTOR_TO_HANDLE_SCALE_FACTOR_M1, -MOTOR_TO_HANDLE_SCALE_FACTOR_M1, 0,
         MOTOR_TO_HANDLE_SCALE_FACTOR_M2, -MOTOR_TO_HANDLE_SCALE_FACTOR_M2, MOTOR_TO_HANDLE_SCALE_FACTOR_M3, 0, 0;
@@ -65,7 +65,7 @@ HapticWristImpl::HapticWristImpl() : gravity(false) {
 
     moteus::Controller::Options options_common;
 
-    auto &pf = options_common.position_format;
+    auto& pf = options_common.position_format;
     pf.position = moteus::kFloat;
     pf.velocity = moteus::kFloat;
     pf.kp_scale = moteus::kInt8;
@@ -94,7 +94,7 @@ HapticWristImpl::HapticWristImpl() : gravity(false) {
         }()),
     };
 
-    for (auto &c : controllers) {
+    for (auto& c : controllers) {
         c->SetStop();
     }
 
@@ -110,7 +110,7 @@ HapticWristImpl::~HapticWristImpl() {
     // TODO: should also break motors here
 }
 
-void HapticWristImpl::setPosition(const jp_type &pos) {
+void HapticWristImpl::setPosition(const jp_type& pos) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d jp_limited;
     double j1_limited = std::min(std::max(pos(0), J1_MIN_THETA), J1_MAX_THETA);
@@ -124,19 +124,25 @@ void HapticWristImpl::setPosition(const jp_type &pos) {
     has_setpoint.store(true);
 };
 
-void HapticWristImpl::setWristToBase(const Eigen::Matrix4d &transform) {
+void HapticWristImpl::setWristToBase(const Eigen::Matrix4d& transform) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     baseToWrist = transform;
 }
 
-jp_type HapticWristImpl::compute_pos(const mp_type &motor_theta) { return mtjp_matrix * motor_theta; }
+jp_type HapticWristImpl::compute_pos(const mp_type& motor_theta) {
+    return mtjp_matrix * motor_theta;
+}
 
-jv_type HapticWristImpl::compute_vel(const mv_type &motor_dtheta) { return mtjp_matrix * motor_dtheta; }
+jv_type HapticWristImpl::compute_vel(const mv_type& motor_dtheta) {
+    return mtjp_matrix * motor_dtheta;
+}
 
-jt_type HapticWristImpl::compute_torque(const mt_type &motor_torque) { return mtjp_matrix * motor_torque; }
+jt_type HapticWristImpl::compute_torque(const mt_type& motor_torque) {
+    return mtjp_matrix * motor_torque;
+}
 
 boost::optional<mjbots::moteus::Query::Result>
-HapticWristImpl::FindServo(const std::vector<mjbots::moteus::CanFdFrame> &frames, int id) {
+HapticWristImpl::FindServo(const std::vector<mjbots::moteus::CanFdFrame>& frames, int id) {
     for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
         if (it->source == id) {
             return mjbots::moteus::Query::Parse(it->data, it->size);
@@ -160,7 +166,7 @@ jt_type HapticWristImpl::getTorque() {
     return handle_torque;
 }
 
-void HapticWristImpl::moveTo(const jp_type &desiredPos, double vel, double accel) {
+void HapticWristImpl::moveTo(const jp_type& desiredPos, double vel, double accel) {
     jp_type startPos = getPosition();
     jp_type diff = desiredPos - startPos;
     double distance = diff.squaredNorm();
@@ -179,7 +185,9 @@ void HapticWristImpl::moveTo(const jp_type &desiredPos, double vel, double accel
     }
 }
 
-void HapticWristImpl::gravityCompensate(bool compensate) { gravity = compensate; }
+void HapticWristImpl::gravityCompensate(bool compensate) {
+    gravity = compensate;
+}
 
 void HapticWristImpl::run() {
     if (!running) {
@@ -244,13 +252,13 @@ bool HapticWristImpl::entryPoint() {
 
     printf("Entering fault mode!\n");
 
-    for (auto &c : controllers) {
+    for (auto& c : controllers) {
         c->SetBrake();
     }
     return true;
 }
 
-bool HapticWristImpl::executeControl(const mt_type &des_motor_torque) {
+bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
 
     send_frames.clear();
 
@@ -281,9 +289,9 @@ bool HapticWristImpl::executeControl(const mt_type &des_motor_torque) {
         missed_replies = 0;
     }
 
-    const auto &v1 = *maybe_servo1;
-    const auto &v2 = *maybe_servo2;
-    const auto &v3 = *maybe_servo3;
+    const auto& v1 = *maybe_servo1;
+    const auto& v2 = *maybe_servo2;
+    const auto& v3 = *maybe_servo3;
     Eigen::Vector3d motor_theta;
 
     if (v1.mode == moteus::Mode::kFault) {

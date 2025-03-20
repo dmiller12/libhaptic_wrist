@@ -4,7 +4,7 @@ namespace fs = boost::filesystem;
 
 std::string get_config_directory() {
     // First, check the environment variable HAPTIC_WRIST_CONFIG_DIR
-    const char *config_dir_env = std::getenv("HAPTIC_WRIST_CONFIG_DIR");
+    const char* config_dir_env = std::getenv("HAPTIC_WRIST_CONFIG_DIR");
     if (config_dir_env) {
         fs::path config_path(config_dir_env);
         if (fs::exists(config_path) && fs::is_directory(config_path)) {

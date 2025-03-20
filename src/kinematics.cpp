@@ -1,7 +1,9 @@
 #include "haptic_wrist/kinematics.h"
 
 Kinematics::Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d world_to_base)
-    : world_to_base(world_to_base), dh_params(dh) {}
+    : world_to_base(world_to_base)
+    , dh_params(dh) {
+}
 
 std::array<Kin, 3> Kinematics::eval(haptic_wrist::jp_type pos, Eigen::Matrix4d base_to_wrist) {
 

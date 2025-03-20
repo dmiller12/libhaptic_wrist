@@ -20,18 +20,18 @@ class HapticWrist {
     ~HapticWrist();
     void run();
     void stop();
-    void setPosition(const jp_type &pos);
+    void setPosition(const jp_type& pos);
     void gravityCompensate(bool compensate = true);
-    void setWristToBase(const Eigen::Matrix4d &transform);
+    void setWristToBase(const Eigen::Matrix4d& transform);
     void hold(bool hold);
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
 
-    void moveTo(const jp_type &pos, double vel = 0.5, double accel = 0.5);
+    void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
 
   private:
-    std::unique_ptr<HapticWristImpl> impl;   
+    std::unique_ptr<HapticWristImpl> impl;
 };
 
 } // namespace haptic_wrist
