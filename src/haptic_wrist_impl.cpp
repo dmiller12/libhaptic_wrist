@@ -15,8 +15,8 @@ const double J1_MAX_THETA = 1.0;
 const double J2_MIN_THETA = -M_PI / 2;
 const double J2_MAX_THETA = M_PI / 2;
 
-const double J3_MIN_THETA = -0.9;
-const double J3_MAX_THETA = 0.9;
+const double J3_MIN_THETA = -1.309;
+const double J3_MAX_THETA = 1.309;
 
 using namespace mjbots;
 
