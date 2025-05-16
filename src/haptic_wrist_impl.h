@@ -45,6 +45,10 @@ class HapticWristImpl {
     jp_type handle_theta;
     jv_type handle_dtheta;
     jt_type handle_torque;
+
+    jp_type j_pos_min;
+    jp_type j_pos_max;
+
     mjbots::moteus::PositionMode::Command cmd;
     Eigen::Matrix3d kp_axis;
     Eigen::Matrix3d kd_axis;

@@ -14,15 +14,26 @@ const double J1_MAX_THETA = 1.0;
 const double J2_MIN_THETA = -M_PI / 2;
 const double J2_MAX_THETA = M_PI / 2;
 
-const double J3_MIN_THETA = -1.309;
-const double J3_MAX_THETA = 1.309;
+const double J3_MIN_THETA = -1.20;
+const double J3_MAX_THETA = 1.20;
 
 using namespace mjbots;
 
 namespace haptic_wrist {
 
 HapticWristImpl::HapticWristImpl()
-    : gravity(false) {
+    : handle_theta(Eigen::Vector3d::Zero())
+    , handle_dtheta(Eigen::Vector3d::Zero())
+    , handle_torque(Eigen::Vector3d::Zero())
+    , gravity(false) {
+
+    j_pos_min(0) = J1_MIN_THETA;
+    j_pos_min(1) = J2_MIN_THETA;
+    j_pos_min(2) = J3_MIN_THETA;
+
+    j_pos_max(0) = J1_MAX_THETA;
+    j_pos_max(1) = J2_MAX_THETA;
+    j_pos_max(2) = J3_MAX_THETA;
 
     jtmp_matrix << 0, -MOTOR_TO_HANDLE_SCALE_FACTOR_M1, -MOTOR_TO_HANDLE_SCALE_FACTOR_M1, 0,
         MOTOR_TO_HANDLE_SCALE_FACTOR_M2, -MOTOR_TO_HANDLE_SCALE_FACTOR_M2, MOTOR_TO_HANDLE_SCALE_FACTOR_M3, 0, 0;
@@ -113,6 +124,7 @@ HapticWristImpl::~HapticWristImpl() {
 void HapticWristImpl::setPosition(const jp_type& pos) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d jp_limited;
+    // TODO: replace with j_pos_min and mac
     double j1_limited = std::min(std::max(pos(0), J1_MIN_THETA), J1_MAX_THETA);
     double j2_limited = std::min(std::max(pos(1), J2_MIN_THETA), J2_MAX_THETA);
     double j3_limited = std::min(std::max(pos(2), J3_MIN_THETA), J3_MAX_THETA);
@@ -236,6 +248,20 @@ bool HapticWristImpl::entryPoint() {
             jt_type j_torque = (kp_axis * error) + (kd_axis * derivative);
             feedforward_torque = jtmp_matrix * j_torque;
         }
+        // enforce joint limits
+        Eigen::Vector3d j_limit_error = Eigen::Vector3d::Zero();
+        for (int i = 0; i < 3; i++) {
+            if (handle_theta(i) > j_pos_max(i)) {
+                j_limit_error(i) = j_pos_max(i) - handle_theta(i);
+            } else if (handle_theta(i) < j_pos_min(i)) {
+                j_limit_error(i) = j_pos_min(i) - handle_theta(i);
+            } else {
+                j_limit_error(i) = 0;
+            }
+        }
+
+        feedforward_torque += jtmp_matrix * (2 * kp_axis * j_limit_error);
+
         if (gravity) {
             Eigen::Matrix4d local_wrist_to_base;
             {
