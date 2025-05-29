@@ -12,7 +12,7 @@
 const double J1_MIN_THETA = -M_PI/2;      // Z-axis: ±180°
 const double J1_MAX_THETA = M_PI/2;
 
-const double J2_MIN_THETA = 0;  // Y-axis: ±90°
+const double J2_MIN_THETA = -M_PI;  // Y-axis: ±90°
 const double J2_MAX_THETA = M_PI;
 
 const double J3_MIN_THETA = -M_PI;      // Z-axis: ±180°
@@ -264,8 +264,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_pos, const mt_type
     for (size_t i = 0; i < controllers.size(); i++) {
         if (has_setpoint.load()) {
             cmd.position = des_motor_pos(i);
-            cmd.kp_scale = 0.6;  // Use default moteus position gains
-            cmd.kd_scale = 0.6;  // Use default moteus velocity gains
+            cmd.kp_scale = 1.0;  // Use default moteus position gains
+            cmd.kd_scale = 1.0;  // Use default moteus velocity gains
         } else {
             cmd.position = std::numeric_limits<double>::quiet_NaN();  // No position control
             cmd.kp_scale = 0.0;  // Disable position control
