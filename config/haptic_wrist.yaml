@@ -1,22 +1,43 @@
-
-kp: [0.08, 0.04, 0.04]
-kd: [0.003, 0.003, 0.006]
+# Configuration for serial direct drive Z-Y-Z wrist
+# Using default moteus gains instead of custom kp/kd values
 
 kinematics:
-  dh: 
-    - {alpha_pi: -0.5, a: 0, d: 0.520}
-    - {alpha_pi: 0.5, a: 0, d: 0}
-    - {alpha_pi: 0, a: 0, d: 0}
+  dh:
+    - {alpha_pi:  0.5,  a: 0, d: 0.520}   # +π/2 twist
+    - {alpha_pi: -0.5,  a: 0, d: 0}       # –π/2 twist
+    - {alpha_pi:  0.0,  a: 0, d: 0.0}   # no twist, tool flange
 
-# poses for gravity cal - wam 4dof followed 3dof wrist
+# Joint limits for Z-Y-Z configuration (in radians)
+joint_limits_rad:
+  joint1: {min: -1.5708, max:  1.5708}
+  joint2: {min:  0.0000, max:  3.1416}
+  joint3: {min: -3.1416, max:  3.1416}
+
+# Poses for gravity calibration - Z-Y-Z wrist only
+# Format: [j1, j2, j3] in radians
 gravitycal:
-  - [0, -1.5708, 0, 1.845, 0, 0, 0]
-  - [0, -1.5708, -1.5708, 1.845, 0, 0, 0.5236]
-  - [0, 0, 0, 1.845, 0, 0.7854, 0]
-  - [0, 0, 0, 1.845, 0, -0.7854, 0]
-  - [0, 0, 0, 1.845, 0, 0, 0.7854]
-  - [0, 0, 0, 1.845, 0, 0, -0.7854]
-  - [0, 0, 0, 1.845, 0.7854, 0, 0]
-  - [0, 0, 0, 1.845, 0.7854, 1.5, 0]
-  - [0, 0, 0, 1.845, -0.7854, 0, 0]
-  - [0, 0, 0, 1.845, -0.7854, -0.7854, -0.7854]
+  # 1. Home / zero-torque reference
+  - [ 0.0000, 0.0000, 0.0000 ]
+
+  # 2. Isolating Joint-1 (Z) at its extrema
+  - [ 1.5708, 0.0000, 0.0000 ]   #  +90° about Z
+  - [-1.5708, 0.0000, 0.0000 ]   #  –90° about Z
+
+  # 3. Isolating Joint-2 (Y) — **all ≥ 0**
+  - [ 0.0000, 0.7854, 0.0000 ]   #  +45° about Y
+  - [ 0.0000, 2.3562, 0.0000 ]   #  +135° (mirror of –45°)
+
+  # 4. Isolating Joint-3 (Z) at ±90°
+  - [ 0.0000, 0.0000,  1.5708 ]  #  +90° about Z
+  - [ 0.0000, 0.0000, -1.5708 ]  #  –90° about Z
+
+  # 5. Coupled Z–Y poses (within limits)
+  - [ 0.7854, 0.5236, 0.0000 ]   #  +45° Z, +30° Y
+  - [-0.7854, 2.6180, 0.0000 ]   #  –45° Z, 180°–30° Y  (mirror of original)
+
+  # 6. Coupled Y–Z pose for off-diagonal terms
+  - [ 0.0000, 0.7854, 0.7854 ]   #  +45° Y, +45° Z
+
+  # 7. Upper-edge "stretch" (optional but useful)
+  - [ 1.5708, 1.5708, 0.0000 ]   #  Joint-1 & -2 both at +90°
+  - [ 0.0000, 3.1416, 0.0000 ]   #  Joint-2 at full +180°

@@ -8,14 +8,15 @@
 #include <boost/optional.hpp>
 #include <unistd.h>
 
-const double J1_MIN_THETA = -1.5;
-const double J1_MAX_THETA = 1.0;
+// Updated joint limits for Z-Y-Z serial wrist
+const double J1_MIN_THETA = -M_PI/2;      // Z-axis: ±180°
+const double J1_MAX_THETA = M_PI/2;
 
-const double J2_MIN_THETA = -M_PI / 2;
-const double J2_MAX_THETA = M_PI / 2;
+const double J2_MIN_THETA = 0;  // Y-axis: ±90°
+const double J2_MAX_THETA = M_PI;
 
-const double J3_MIN_THETA = -1.20;
-const double J3_MAX_THETA = 1.20;
+const double J3_MIN_THETA = -M_PI;      // Z-axis: ±180°
+const double J3_MAX_THETA = M_PI;
 
 using namespace mjbots;
 
@@ -35,12 +36,17 @@ HapticWristImpl::HapticWristImpl()
     j_pos_max(1) = J2_MAX_THETA;
     j_pos_max(2) = J3_MAX_THETA;
 
-    jtmp_matrix << 0, -MOTOR_TO_HANDLE_SCALE_FACTOR_M1, -MOTOR_TO_HANDLE_SCALE_FACTOR_M1, 0,
-        MOTOR_TO_HANDLE_SCALE_FACTOR_M2, -MOTOR_TO_HANDLE_SCALE_FACTOR_M2, MOTOR_TO_HANDLE_SCALE_FACTOR_M3, 0, 0;
+    // Diagonal transformation matrices with gear ratios
+    jtmp_matrix = Eigen::Matrix3d::Zero();
+    jtmp_matrix(0, 0) = 1.0 / MOTOR_TO_JOINT_GEAR_RATIO_1;  // Motor 1 to Joint 1
+    jtmp_matrix(1, 1) = 1.0 / MOTOR_TO_JOINT_GEAR_RATIO_2;  // Motor 2 to Joint 2
+    jtmp_matrix(2, 2) = 1.0 / MOTOR_TO_JOINT_GEAR_RATIO_3;  // Motor 3 to Joint 3
 
-    mtjp_matrix << 0, 0, 1.0 / MOTOR_TO_HANDLE_SCALE_FACTOR_M3, -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M1,
-        0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M2, 0, -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M1,
-        -0.5 / MOTOR_TO_HANDLE_SCALE_FACTOR_M2, 0;
+    // Inverse transformation
+    mtjp_matrix = Eigen::Matrix3d::Zero();
+    mtjp_matrix(0, 0) = MOTOR_TO_JOINT_GEAR_RATIO_1;  // Joint 1 to Motor 1
+    mtjp_matrix(1, 1) = MOTOR_TO_JOINT_GEAR_RATIO_2;  // Joint 2 to Motor 2
+    mtjp_matrix(2, 2) = MOTOR_TO_JOINT_GEAR_RATIO_3;  // Joint 3 to Motor 3
 
     std::string config_dir = get_config_directory();
     if (config_dir.empty()) {
@@ -68,23 +74,15 @@ HapticWristImpl::HapticWristImpl()
     }
     gravity_compensator = GravityComp(mus);
 
-    // set diagonal elements
-    for (size_t i = 0; i < 3; i++) {
-        kp_axis(i, i) = yaml_config["kp"][i].as<double>();
-        kd_axis(i, i) = yaml_config["kd"][i].as<double>();
-    }
-
     moteus::Controller::Options options_common;
 
     auto& pf = options_common.position_format;
     pf.position = moteus::kFloat;
     pf.velocity = moteus::kFloat;
-    pf.kp_scale = moteus::kInt8;
-    pf.kd_scale = moteus::kInt8;
+    pf.kp_scale = moteus::kFloat;
+    pf.kd_scale = moteus::kFloat;
     pf.feedforward_torque = moteus::kFloat;
 
-    // would be nice to remove this or have an alternative
-    // moteus::Controller::DefaultArgProcess(argc, argv);
     transport = moteus::Controller::MakeSingletonTransport({});
 
     controllers = {
@@ -111,26 +109,22 @@ HapticWristImpl::HapticWristImpl()
 
     cmd.position = 0.0;
     cmd.velocity = 0.0;
-    cmd.kp_scale = 1.0;
-    cmd.kd_scale = 1.0;
+    cmd.kp_scale = 1.0;  // Use default moteus gains
+    cmd.kd_scale = 1.0;  // Use default moteus gains
     cmd.feedforward_torque = 0.0;
 };
 
 HapticWristImpl::~HapticWristImpl() {
     stop();
-    // TODO: should also break motors here
 }
 
 void HapticWristImpl::setPosition(const jp_type& pos) {
     boost::lock_guard<boost::mutex> lock(set_mutex);
     Eigen::Vector3d jp_limited;
-    // TODO: replace with j_pos_min and mac
-    double j1_limited = std::min(std::max(pos(0), J1_MIN_THETA), J1_MAX_THETA);
-    double j2_limited = std::min(std::max(pos(1), J2_MIN_THETA), J2_MAX_THETA);
-    double j3_limited = std::min(std::max(pos(2), J3_MIN_THETA), J3_MAX_THETA);
-    jp_limited(0) = j1_limited;
-    jp_limited(1) = j2_limited;
-    jp_limited(2) = j3_limited;
+    // Limit joint positions
+    for (int i = 0; i < 3; i++) {
+        jp_limited(i) = std::min(std::max(pos(i), j_pos_min(i)), j_pos_max(i));
+    }
 
     theta_des = jtmp_matrix * jp_limited;
     has_setpoint.store(true);
@@ -181,7 +175,7 @@ jt_type HapticWristImpl::getTorque() {
 void HapticWristImpl::moveTo(const jp_type& desiredPos, double vel, double accel) {
     jp_type startPos = getPosition();
     jp_type diff = desiredPos - startPos;
-    double distance = diff.squaredNorm();
+    double distance = diff.norm();  // Use norm() instead of squaredNorm() for actual distance
 
     TrapezoidalVelocityProfile profile(vel, accel, 0.0, distance);
     auto start_time = std::chrono::steady_clock::now();
@@ -195,6 +189,8 @@ void HapticWristImpl::moveTo(const jp_type& desiredPos, double vel, double accel
         setPosition(goal_pos);
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
+    // Ensure we reach the final position
+    setPosition(desiredPos);
 }
 
 void HapticWristImpl::gravityCompensate(bool compensate) {
@@ -224,8 +220,6 @@ void HapticWristImpl::hold(bool hold) {
 }
 
 bool HapticWristImpl::entryPoint() {
-    Eigen::Vector3d prevError = Eigen::Vector3d::Zero();
-    std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     mt_type feedforward_torque;
     while (running.load()) {
         feedforward_torque = Eigen::Vector3d::Zero();
@@ -235,33 +229,7 @@ bool HapticWristImpl::entryPoint() {
             local_theta_des = theta_des;
         }
 
-        auto now = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed_seconds = now - last_time;
-        double dt = elapsed_seconds.count();
-
-        if (has_setpoint.load()) {
-            jp_type des_handle_theta = compute_pos(local_theta_des);
-            Eigen::Vector3d error = des_handle_theta - handle_theta;
-            Eigen::Vector3d derivative = (error - prevError) / dt;
-            prevError = error;
-
-            jt_type j_torque = (kp_axis * error) + (kd_axis * derivative);
-            feedforward_torque = jtmp_matrix * j_torque;
-        }
-        // enforce joint limits
-        Eigen::Vector3d j_limit_error = Eigen::Vector3d::Zero();
-        for (int i = 0; i < 3; i++) {
-            if (handle_theta(i) > j_pos_max(i)) {
-                j_limit_error(i) = j_pos_max(i) - handle_theta(i);
-            } else if (handle_theta(i) < j_pos_min(i)) {
-                j_limit_error(i) = j_pos_min(i) - handle_theta(i);
-            } else {
-                j_limit_error(i) = 0;
-            }
-        }
-
-        feedforward_torque += jtmp_matrix * (2 * kp_axis * j_limit_error);
-
+        // Add gravity compensation if enabled
         if (gravity) {
             Eigen::Matrix4d local_wrist_to_base;
             {
@@ -272,7 +240,12 @@ bool HapticWristImpl::entryPoint() {
             auto g_torque = gravity_compensator.eval(kin);
             feedforward_torque += jtmp_matrix * g_torque;
         }
-        executeControl(feedforward_torque);
+        
+        bool status = executeControl(local_theta_des / (2.0 * M_PI), feedforward_torque);
+        if (status) {
+            running.store(false);
+        }
+
         std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
@@ -284,15 +257,22 @@ bool HapticWristImpl::entryPoint() {
     return true;
 }
 
-bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
+bool HapticWristImpl::executeControl(const mt_type& des_motor_pos, const mt_type& des_motor_torque) {
 
     send_frames.clear();
 
     for (size_t i = 0; i < controllers.size(); i++) {
-        cmd.velocity = 0;
+        if (has_setpoint.load()) {
+            cmd.position = des_motor_pos(i);
+            cmd.kp_scale = 0.6;  // Use default moteus position gains
+            cmd.kd_scale = 0.6;  // Use default moteus velocity gains
+        } else {
+            cmd.position = std::numeric_limits<double>::quiet_NaN();  // No position control
+            cmd.kp_scale = 0.0;  // Disable position control
+            cmd.kd_scale = 0.1;  // Keep some damping
+        }
+        cmd.velocity = 0.0;
         cmd.feedforward_torque = des_motor_torque(i);
-        cmd.kp_scale = 0;
-        cmd.kd_scale = 0.2;
         send_frames.push_back(controllers[i]->MakePosition(cmd));
     }
 
