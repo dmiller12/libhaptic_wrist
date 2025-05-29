@@ -32,6 +32,11 @@ target_sources(haptic_wrist
 	src/kinematics.cpp
 	src/utils.cpp
 )
+
+set_target_properties( haptic_wrist PROPERTIES
+  VERSION ${PROJECT_VERSION}
+  SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 target_include_directories(haptic_wrist PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
