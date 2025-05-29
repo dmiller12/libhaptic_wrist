@@ -5,18 +5,14 @@
 
 #include "haptic_wrist/types.h"
 
-// TODO: check what first var is, unused
-#define MOTOR_TO_HANDLE_SCALE_FACTOR 6.168845556
-#define MOTOR_TO_HANDLE_SCALE_FACTOR_M1 7.46
-#define MOTOR_TO_HANDLE_SCALE_FACTOR_M2 7.46
-#define MOTOR_TO_HANDLE_SCALE_FACTOR_M3 14.87
 
 namespace haptic_wrist {
 class HapticWristImpl;
 
 /**
  * @class HapticWrist
- * Control the haptic wrist. Use run() to start the control loop in a separate thread.
+ * Control the serial direct drive Z-Y-Z haptic wrist. 
+ * Use run() to start the control loop in a separate thread.
  *
  */
 class HapticWrist {
@@ -39,7 +35,7 @@ class HapticWrist {
      * to the current position.
      * @see moveTo() for a generated trajectory to a desired position.
      *
-     * @param pos desired position.
+     * @param pos desired position in joint space [rad]: [Z1, Y2, Z3]
      */
     void setPosition(const jp_type& pos);
 
@@ -68,30 +64,30 @@ class HapticWrist {
     /**
      * Returns the current joint positions.
      *
-     * @return Current joint positions.
+     * @return Current joint positions [rad]: [Z1, Y2, Z3]
      */
     jp_type getPosition();
 
     /**
      * Returns the current joint velocities.
      *
-     * @return Current joint velocities.
+     * @return Current joint velocities [rad/s]: [Z1_dot, Y2_dot, Z3_dot]
      */
     jv_type getVelocity();
 
     /**
      * Returns the current joint torques.
      *
-     * @return Current joint torques.
+     * @return Current joint torques [N⋅m]: [T_Z1, T_Y2, T_Z3]
      */
     jt_type getTorque();
 
     /**
      * Moves to the desired position using a trapezoidal velocity profile. Blocks until move is completed.
      *
-     * @param pos Desired Position.
-     * @param vel Peak velocity.
-     * @param accel
+     * @param pos Desired Position [rad]: [Z1, Y2, Z3]
+     * @param vel Peak velocity [rad/s]
+     * @param accel Acceleration [rad/s²]
      */
     void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
 

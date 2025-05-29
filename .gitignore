@@ -1,0 +1,88 @@
+# Build directories
+build/
+build-*/
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+install_manifest.txt
+CTestTestfile.cmake
+Testing/
+
+# Compiled binaries and libraries
+*.o
+*.so
+*.so.*
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+*.app
+
+# IDE and editor files
+.vscode/
+.idea/
+*.pro.user
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*~
+*.swp
+*.swo
+.cproject
+.project
+.settings/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Dependency directories
+deps/
+dependencies/
+third_party/
+external/
+
+# Configuration files (might contain sensitive info)
+*.conf
+*.config
+!default.conf
+!default.config
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Package files
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Core dumps
+core
+core.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
