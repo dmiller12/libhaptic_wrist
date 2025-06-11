@@ -1,41 +1,4 @@
-# mus:
-#   - [-0.00093399419104297154, 0.00035501631462961798, -0.00033090923377182666]
-#   - [0.00012792876552845099, 1.4869339157267865e-05, 0.00027644970122999547]
-#   - [0, 0, 0]
-
-
-# Gravity compensation parameters for Z-Y-Z serial wrist
-# These values represent the center of mass times mass (mu = m * r_cm) for each link
-# in the link's local coordinate frame
-# 
-# You will need to calibrate these values for your specific wrist by:
-# 1. Running gravity calibration routine with known poses
-# 2. Measuring torques at each pose
-# 3. Solving for the mu parameters
-#
-# Initial values are set to small non-zero values as a starting point
 mus:
-  # Link 1 (after Joint 1, Z-axis rotation)
-  # Format: [mu_x, mu_y, mu_z] in kg⋅m
-  - [0.001, 0.001, 0.005]
-  
-  # Link 2 (after Joint 2, Y-axis rotation)  
-  - [0.001, 0.0005, 0.003]
-  
-  # Link 3 (after Joint 3, Z-axis rotation) - end effector
-  # Often set to [0, 0, 0] if no significant mass after joint 3
-  - [0, 0, 0]
-
-# Alternative format with more detail
-link_params:
-  link1:
-    mass: 0.5  # kg
-    com: [0.002, 0.002, 0.010]  # center of mass in link frame [m]
-    
-  link2:
-    mass: 0.3  # kg
-    com: [0.003, 0.0017, 0.010]  # center of mass in link frame [m]
-    
-  link3:
-    mass: 0.1  # kg (end-effector mass)
-    com: [0, 0, 0]  # center of mass in link frame [m]
+  - [-0.013123515493568614, 0.035403725050328919, -0.014655768650141933]
+  - [0.011409007344043376, -0.0027822380017998981, 0.04165095024419703]
+  - [0.0098392773428983074, -0.00019152323905683225, 0.00034904661946108295]

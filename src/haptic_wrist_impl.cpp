@@ -9,8 +9,8 @@
 #include <unistd.h>
 
 // Updated joint limits for Z-Y-Z serial wrist
-const double J1_MIN_THETA = -M_PI/2;      // Z-axis: ±180°
-const double J1_MAX_THETA = M_PI/2;
+const double J1_MIN_THETA = -M_PI;      // Z-axis: ±180°
+const double J1_MAX_THETA = M_PI;
 
 const double J2_MIN_THETA = -M_PI;  // Y-axis: ±90°
 const double J2_MAX_THETA = M_PI;
@@ -62,7 +62,6 @@ HapticWristImpl::HapticWristImpl()
         dh_param.d = yaml_config["kinematics"]["dh"][i]["d"].as<double>();
         dh.push_back(dh_param);
     }
-
     kinematics = Kinematics(dh, Eigen::Matrix4d::Identity());
     config_file = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
     YAML::Node mu_config = YAML::LoadFile(config_file.string());
@@ -123,7 +122,8 @@ void HapticWristImpl::setPosition(const jp_type& pos) {
     Eigen::Vector3d jp_limited;
     // Limit joint positions
     for (int i = 0; i < 3; i++) {
-        jp_limited(i) = std::min(std::max(pos(i), j_pos_min(i)), j_pos_max(i));
+        // jp_limited(i) = std::min(std::max(pos(i), j_pos_min(i)), j_pos_max(i));
+        jp_limited(i) = pos(i);
     }
 
     theta_des = jtmp_matrix * jp_limited;

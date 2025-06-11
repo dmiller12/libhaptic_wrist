@@ -95,7 +95,7 @@
 
 // Gear ratios for serial direct drive
 #define MOTOR_TO_JOINT_GEAR_RATIO_1 -1  // Motor 1 to Joint 1 (Z-axis)
-#define MOTOR_TO_JOINT_GEAR_RATIO_2 1 // Motor 2 to Joint 2 (Y-axis)
+#define MOTOR_TO_JOINT_GEAR_RATIO_2 -1 // Motor 2 to Joint 2 (Y-axis)
 #define MOTOR_TO_JOINT_GEAR_RATIO_3 -1 // Motor 3 to Joint 3 (Z-axis)
 
 namespace haptic_wrist {
