@@ -1,11 +1,10 @@
 # Configuration for serial direct drive Z-Y-Z wrist
-# Using default moteus gains instead of custom kp/kd values
 
 kinematics:
   dh:
-    - {alpha_pi:  0.5,  a: 0, d: 0.520}   # +π/2 twist
-    - {alpha_pi: -0.5,  a: 0, d: 0}       # –π/2 twist
-    - {alpha_pi:  0.0,  a: 0, d: 0.0}   # no twist, tool flange
+    - {alpha_pi:  -0.5,  a: 0, d: 0.520}   
+    - {alpha_pi: 0.5,  a: 0.0, d: 0}       
+    - {alpha_pi:  0.0,  a: 0.0, d: 0.0}   
 
 # Joint limits for Z-Y-Z configuration (in radians)
 joint_limits_rad:

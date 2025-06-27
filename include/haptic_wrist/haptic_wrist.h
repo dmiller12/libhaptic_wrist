@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <memory>
 
 #include "haptic_wrist/types.h"
@@ -11,7 +12,7 @@ class HapticWristImpl;
 
 /**
  * @class HapticWrist
- * Control the serial direct drive Z-Y-Z haptic wrist. 
+ * Control the serial direct drive Z-Y-Z haptic wrist using orientation control.
  * Use run() to start the control loop in a separate thread.
  *
  */
@@ -21,75 +22,78 @@ class HapticWrist {
     ~HapticWrist();
 
     /**
-     *  Starts the haptic wrist control loop in a separate thread.
+     * Starts the haptic wrist control loop in a separate thread.
      */
     void run();
 
     /**
-     *  Stops the haptic wrist control loop.
+     * Stops the haptic wrist control loop.
      */
     void stop();
 
     /**
-     *  Provide a desired position for real time control. This value is used as the PID reference and should be close
-     * to the current position.
-     * @see moveTo() for a generated trajectory to a desired position.
-     *
-     * @param pos desired position in joint space [rad]: [Z1, Y2, Z3]
+     * @brief Provide a desired orientation for the end-effector.
+     * The controller will generate torques to achieve this orientation.
+     * @param orientation A quaternion representing the desired orientation in the base frame.
      */
-    void setPosition(const jp_type& pos);
+    void setOrientation(const Eigen::Quaterniond& orientation);
 
     /**
-     * Enable or disable gravity compensation.
-     *
+     * @brief Sets the gains for the orientation controller.
+     * @param kp Proportional gain on orientation error.
+     * @param kd Derivative gain for damping.
+     */
+    void setOrientationGains(double kp, double kd);
+
+    /**
+     * @brief Gets the current orientation of the end-effector.
+     * @return A quaternion representing the current orientation in the base frame.
+     */
+    Eigen::Quaterniond getOrientation();
+
+    /**
+     * @brief Enable or disable gravity compensation.
      * @param compensate
      */
     void gravityCompensate(bool compensate = true);
 
     /**
-     * Update the transformation between the wrist and the world frame. Useful when used with gravity compensation and
-     * base frame wrist movement.
-     *
+     * @brief Update the transformation between the wrist and the world frame.
      * @param transform 4x4 homogeneous matrix transforming from wrist base frame to world frame.
      */
     void setWristToBase(const Eigen::Matrix4d& transform);
 
     /**
-     * Holds the current joint positions.
-     *
-     * @param hold
+     * @brief Commands the wrist to hold its current orientation or release control.
+     * @param hold If true, captures the current orientation and holds it.
+     * If false, stops applying active control torques (motors will be compliant).
      */
     void hold(bool hold);
 
     /**
-     * Returns the current joint positions.
-     *
+     * @brief Returns the current joint positions.
      * @return Current joint positions [rad]: [Z1, Y2, Z3]
      */
     jp_type getPosition();
 
     /**
-     * Returns the current joint velocities.
-     *
+     * @brief Returns the current joint velocities.
      * @return Current joint velocities [rad/s]: [Z1_dot, Y2_dot, Z3_dot]
      */
     jv_type getVelocity();
 
     /**
-     * Returns the current joint torques.
-     *
+     * @brief Returns the last commanded joint torques.
      * @return Current joint torques [N⋅m]: [T_Z1, T_Y2, T_Z3]
      */
     jt_type getTorque();
-
+    
     /**
-     * Moves to the desired position using a trapezoidal velocity profile. Blocks until move is completed.
-     *
-     * @param pos Desired Position [rad]: [Z1, Y2, Z3]
-     * @param vel Peak velocity [rad/s]
-     * @param accel Acceleration [rad/s²]
+     * @brief Moves to a desired joint position.
+     * NOTE: This function is incompatible with the orientation controller and will throw an exception.
      */
     void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
+
 
   private:
     std::unique_ptr<HapticWristImpl> impl;

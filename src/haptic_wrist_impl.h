@@ -1,83 +1,3 @@
-// #pragma once
-
-// #include "moteus.h"
-// #include <cmath>
-// #include <math.h>
-
-// #include <Eigen/Dense>
-
-// #include "haptic_wrist/gravity_comp.h"
-// #include "haptic_wrist/types.h"
-// #include <boost/optional.hpp>
-// #include <boost/thread/locks.hpp>
-// #include <boost/thread/shared_mutex.hpp>
-// #include <thread>
-
-// // TODO: check what first var is, unused
-// #define MOTOR_TO_HANDLE_SCALE_FACTOR 6.168845556
-// #define MOTOR_TO_HANDLE_SCALE_FACTOR_M1 7.46
-// #define MOTOR_TO_HANDLE_SCALE_FACTOR_M2 7.46
-// #define MOTOR_TO_HANDLE_SCALE_FACTOR_M3 14.87
-
-// namespace haptic_wrist {
-
-// class HapticWristImpl {
-//   public:
-//     HapticWristImpl();
-//     ~HapticWristImpl();
-//     void run();
-//     void stop();
-//     void setPosition(const jp_type& pos);
-//     void gravityCompensate(bool compensate = true);
-//     void setWristToBase(const Eigen::Matrix4d& transform);
-//     void hold(bool hold);
-//     jp_type getPosition();
-//     jv_type getVelocity();
-//     jt_type getTorque();
-
-//     void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
-
-//   private:
-//     std::vector<std::shared_ptr<mjbots::moteus::Controller>> controllers;
-//     std::vector<mjbots::moteus::CanFdFrame> send_frames;
-//     std::vector<mjbots::moteus::CanFdFrame> receive_frames;
-//     jp_type theta_des;
-//     jp_type handle_theta;
-//     jv_type handle_dtheta;
-//     jt_type handle_torque;
-
-//     jp_type j_pos_min;
-//     jp_type j_pos_max;
-
-//     mjbots::moteus::PositionMode::Command cmd;
-//     Eigen::Matrix3d kp_axis;
-//     Eigen::Matrix3d kd_axis;
-//     std::shared_ptr<mjbots::moteus::Transport> transport;
-//     int missed_replies;
-//     std::atomic<bool> gravity;
-//     GravityComp gravity_compensator;
-//     Kinematics kinematics;
-
-//     static constexpr double radiansPerRotation = 2.0 * M_PI;
-//     Eigen::Matrix3d jtmp_matrix;
-//     Eigen::Matrix3d mtjp_matrix;
-//     boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame>& frames,
-//                                                              int id);
-//     bool executeControl(const mt_type& motor_torque);
-//     bool entryPoint();
-//     jp_type compute_pos(const mp_type& motor_theta);
-//     jv_type compute_vel(const mv_type& motor_dtheta);
-//     jt_type compute_torque(const mt_type& motor_torque);
-//     Eigen::Matrix4d baseToWrist = Eigen::Matrix4d::Identity();
-//     std::atomic<bool> running{false};
-//     std::atomic<bool> has_setpoint{false};
-//     std::thread control_thread;
-//     boost::mutex set_mutex;
-//     boost::shared_mutex state_mutex;
-// };
-
-// } // namespace haptic_wrist
-
 #pragma once
 
 #include "moteus.h"
@@ -85,20 +5,31 @@
 #include <math.h>
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 #include "haptic_wrist/gravity_comp.h"
+#include "haptic_wrist/kinematics.h"
+#include "haptic_wrist/orientation_controller.h"
 #include "haptic_wrist/types.h"
 #include <boost/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <thread>
+#include <atomic>
+#include <memory>
 
 // Gear ratios for serial direct drive
 #define MOTOR_TO_JOINT_GEAR_RATIO_1 -1  // Motor 1 to Joint 1 (Z-axis)
-#define MOTOR_TO_JOINT_GEAR_RATIO_2 1 // Motor 2 to Joint 2 (Y-axis)
+#define MOTOR_TO_JOINT_GEAR_RATIO_2 -1 // Motor 2 to Joint 2 (Y-axis)
 #define MOTOR_TO_JOINT_GEAR_RATIO_3 -1 // Motor 3 to Joint 3 (Z-axis)
 
 namespace haptic_wrist {
+
+// Defines the active control strategy
+enum class ControlMode {
+    NONE,           // No active control, compliant.
+    ORIENTATION     // Actively controls end-effector orientation.
+};
 
 class HapticWristImpl {
   public:
@@ -106,51 +37,70 @@ class HapticWristImpl {
     ~HapticWristImpl();
     void run();
     void stop();
-    void setPosition(const jp_type& pos);
+
+    // Control Methods
+    void setOrientation(const Eigen::Quaterniond& orientation);
+    void setOrientationGains(double kp, double kd);
+    void hold(bool hold);
     void gravityCompensate(bool compensate = true);
     void setWristToBase(const Eigen::Matrix4d& transform);
-    void hold(bool hold);
+
+    // Getters
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
-
-    void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
+    Eigen::Quaterniond getOrientation();
 
   private:
-    std::vector<std::shared_ptr<mjbots::moteus::Controller>> controllers;
-    std::vector<mjbots::moteus::CanFdFrame> send_frames;
-    std::vector<mjbots::moteus::CanFdFrame> receive_frames;
-    jp_type theta_des;
-    jp_type handle_theta;
-    jv_type handle_dtheta;
-    jt_type handle_torque;
+    // Moteus hardware interface
+    std::vector<std::shared_ptr<mjbots::moteus::Controller>> controllers_;
+    std::shared_ptr<mjbots::moteus::Transport> transport_;
+    std::vector<mjbots::moteus::CanFdFrame> send_frames_;
+    std::vector<mjbots::moteus::CanFdFrame> receive_frames_;
+    mjbots::moteus::PositionMode::Command cmd_;
+    int missed_replies_ = 0;
 
-    jp_type j_pos_min;
-    jp_type j_pos_max;
+    // Control state
+    std::atomic<ControlMode> control_mode_{ControlMode::NONE};
+    Eigen::Quaterniond orientation_des_;
+    
+    // Controllers and Kinematics
+    std::unique_ptr<OrientationController> orientation_controller_;
+    Kinematics kinematics_;
+    GravityComp gravity_compensator_;
+    
+    // Physical state variables
+    jp_type handle_theta_;
+    jv_type handle_dtheta_;
+    jt_type handle_torque_;
+    Eigen::Quaterniond handle_orientation_;
+    
+    // Configuration and settings
+    std::atomic<bool> gravity_compensate_{false};
+    Eigen::Matrix4d base_to_wrist_ = Eigen::Matrix4d::Identity();
 
-    mjbots::moteus::PositionMode::Command cmd;
-    std::shared_ptr<mjbots::moteus::Transport> transport;
-    int missed_replies;
-    std::atomic<bool> gravity;
-    GravityComp gravity_compensator;
-    Kinematics kinematics;
+    // Coordinate transformation matrices
+    Eigen::Matrix3d jtmp_matrix_; // Joint to motor
+    Eigen::Matrix3d mtjp_matrix_; // Motor to joint
 
-    static constexpr double radiansPerRotation = 2.0 * M_PI;
-    Eigen::Matrix3d jtmp_matrix;
-    Eigen::Matrix3d mtjp_matrix;
-    boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame>& frames,
-                                                             int id);
-    bool executeControl(const mt_type& des_motor_pos, const mt_type& des_motor_torque);
+    // Threading and synchronization
+    std::atomic<bool> running_{false};
+    std::thread control_thread_;
+    boost::mutex set_mutex_;
+    boost::shared_mutex state_mutex_;
+
+    // Main control loop
     bool entryPoint();
+    // Hardware command execution
+    bool executeControl(const mt_type& des_motor_torque);
+    
+    // Helper methods
     jp_type compute_pos(const mp_type& motor_theta);
     jv_type compute_vel(const mv_type& motor_dtheta);
     jt_type compute_torque(const mt_type& motor_torque);
-    Eigen::Matrix4d baseToWrist = Eigen::Matrix4d::Identity();
-    std::atomic<bool> running{false};
-    std::atomic<bool> has_setpoint{false};
-    std::thread control_thread;
-    boost::mutex set_mutex;
-    boost::shared_mutex state_mutex;
+    boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame>& frames, int id);
+
+    static constexpr double radiansPerRotation = 2.0 * M_PI;
 };
 
 } // namespace haptic_wrist

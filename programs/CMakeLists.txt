@@ -18,9 +18,14 @@
 
 # Test program for haptic wrist
 add_executable(test_wrist test_wrist.cpp)
+
+target_include_directories(test_wrist PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+
 target_link_libraries(test_wrist 
     haptic_wrist
     pthread
+    yaml-cpp
 )
 
 # Install the test programs
