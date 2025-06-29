@@ -1,0 +1,29 @@
+# .clang-format
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120
+UseTab: Never
+
+# Formatting rules
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: None
+IndentCaseLabels: true
+AlwaysBreakTemplateDeclarations: Yes
+AlwaysBreakAfterReturnType: None
+SortIncludes: true
+
+# Constructor Initializer List
+BreakConstructorInitializersBeforeComma: true
+
+# Pointer and Reference styles
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# C++11 features
+SpacesInAngles: false
+Cpp11BracedListStyle: true
+
+# Misc
+SpaceAfterCStyleCast: true
+FixNamespaceComments: true
+ReflowComments: true
