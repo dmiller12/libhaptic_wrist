@@ -19,6 +19,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(yaml-cpp)
 
+enable_testing()
+
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+FetchContent_MakeAvailable(googletest)
+
 find_package(Eigen3 REQUIRED)
 find_package(Boost COMPONENTS thread filesystem REQUIRED)
 
@@ -95,3 +104,5 @@ install(FILES
 )
 
 add_subdirectory(programs)
+add_subdirectory(tests)
+
