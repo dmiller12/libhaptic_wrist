@@ -100,15 +100,15 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<haptic_wrist::jt_type> torques;
     std::vector<Eigen::Matrix4d> base_to_world;
 
-    std::vector<DHParameter> dh;
+    std::vector<haptic_wrist::DHParameter> dh;
     for (size_t i = 0; i < 3; i++) {
-        DHParameter dh_param;
+        haptic_wrist::DHParameter dh_param;
         dh_param.alpha_pi = yaml_config["kinematics"]["dh"][i]["alpha_pi"].as<double>();
         dh_param.a = yaml_config["kinematics"]["dh"][i]["a"].as<double>();
         dh_param.d = yaml_config["kinematics"]["dh"][i]["d"].as<double>();
         dh.push_back(dh_param);
     }
-    Kinematics kinematics(dh, Eigen::Matrix4d::Identity());
+    haptic_wrist::Kinematics kinematics(dh, Eigen::Matrix4d::Identity());
 
     haptic_wrist::HapticWrist hw;
     hw.gravityCompensate(false);
@@ -168,7 +168,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     for (size_t i = 0; i < poses.size(); i++) {
         // need gravity vector for each joint
         auto kin = kinematics.eval(positions[i], base_to_world[i]);
-        auto grav = GravityComp::computeGravity(kin);
+        auto grav = haptic_wrist::GravityComp::computeGravity(kin);
         for (size_t j = 0; j < 3; j++) {
             // grav skew matrix
             GT[j].block<3, 3>(3 * i, 0) = skewSymmetric(grav[j]);

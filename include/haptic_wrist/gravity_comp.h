@@ -19,13 +19,14 @@ class GravityComp {
      */
     jt_type eval(const std::array<Kin, 3>& kin);
 
-  private:
     /**
      * @brief Helper function to compute the gravity vector for each link.
      * @param kin The kinematic chain transformations.
      * @return An array containing the gravity vector for each of the 3 links.
      */
     static std::array<Eigen::Vector3d, 3> computeGravity(const std::array<Kin, 3>& kin);
+
+  private:
 
     // Matrix of coefficients for the gravity model (link masses and center of mass)
     Eigen::Matrix3d mus_;
