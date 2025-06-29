@@ -6,14 +6,6 @@ kinematics:
     - {alpha_pi: 0.5,  a: 0, d: 0}
     - {alpha_pi:  0.0,  a: 0, d: 0.005}
 
-# Joint limits for Z-Y-Z configuration (in radians)
-joint_limits_rad:
-  joint1: {min: -1.5708, max:  1.5708}
-  joint2: {min:  0.0000, max:  3.1416}
-  joint3: {min: -3.1416, max:  3.1416}
-
-# Poses for gravity calibration - Z-Y-Z wrist only
-# Format: [j1, j2, j3] in radians
 gravitycal:
   - [0, -1.5708, 0, 1.5708, 0, 0, 0]
   - [0, -1.5708, 0, 1.5708, 0, -1.5708, 0]
