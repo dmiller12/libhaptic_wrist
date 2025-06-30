@@ -7,6 +7,14 @@ cmake ..
 make
 sudo make install
 ```
+If you don't have the libbarrett dependency, you can disable related executables with:
+```bash
+cmake -DBUILD_BARRETT=OFF ..
+```
+To run tests, from the build directory execute:
+```bash
+ctest
+```
 
 ## Integrate with your project
 Add to CMakeLists.txt
