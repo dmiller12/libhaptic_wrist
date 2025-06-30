@@ -3,6 +3,7 @@
 #include "yaml-cpp/yaml.h"
 #include <boost/filesystem.hpp>
 #include <iostream>
+#include "trajectory.h"
 
 using namespace mjbots;
 
@@ -13,11 +14,18 @@ HapticWristImpl::HapticWristImpl()
     , handle_dtheta_(Eigen::Vector3d::Zero())
     , handle_torque_(Eigen::Vector3d::Zero())
     , handle_orientation_(Eigen::Quaterniond::Identity())
-    , orientation_des_(Eigen::Quaterniond::Identity()) {
+    , orientation_des_(Eigen::Quaterniond::Identity())
+    , control_period_(1.0 / control_rate_) {
+
 
     // Initialize the orientation controller with default gains.
     // These should be tuned for your specific hardware.
     orientation_controller_ = std::make_unique<OrientationController>(20.0, 0.5); // Kp=20, Kd=0.5
+
+    Eigen::Vector3d kp, kd; 
+    kp << 1.0, 1.0, 1.0;
+    kd << 0.1, 0.1, 0.1;
+    joint_position_controller_ = std::make_unique<JointPositionController>(kp, kd, control_period_.count());
 
     // Transformation matrices for motor/joint conversions
     jtmp_matrix_ = Eigen::Matrix3d::Zero();
@@ -38,7 +46,6 @@ HapticWristImpl::HapticWristImpl()
         YAML::Node yaml_config = YAML::LoadFile(config_file.string());
         std::vector<DHParameter> dh;
         for (size_t i = 0; i < 3; i++) {
-            // BUGFIX: Fully populate the DHParameter struct, including the theta_pi offset.
             DHParameter p;
             p.alpha_pi = yaml_config["kinematics"]["dh"][i]["alpha_pi"].as<double>();
             p.a = yaml_config["kinematics"]["dh"][i]["a"].as<double>();
@@ -52,7 +59,16 @@ HapticWristImpl::HapticWristImpl()
             }
             dh.push_back(p);
         }
-        kinematics_ = Kinematics(dh, Eigen::Matrix4d::Identity());
+
+        Eigen::Matrix4d eef_to_tool;
+        for (int i=0; i < 4; i++) {
+            const YAML::Node& row = yaml_config["kinematics"]["eef_to_tool"][i];
+            for (int j = 0; j< 4; j++){
+                eef_to_tool(i, j) = row[j].as<double>();
+            }
+        }
+
+        kinematics_ = Kinematics(dh, eef_to_tool, Eigen::Matrix4d::Identity());
 
         config_file = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
         YAML::Node mu_config = YAML::LoadFile(config_file.string());
@@ -92,10 +108,16 @@ HapticWristImpl::~HapticWristImpl() {
     stop();
 }
 
-void HapticWristImpl::setOrientation(const Eigen::Quaterniond& orientation) {
+void HapticWristImpl::setTarget(const Eigen::Quaterniond& orientation) {
     boost::lock_guard<boost::mutex> lock(set_mutex_);
     orientation_des_ = orientation.normalized();
     control_mode_.store(ControlMode::ORIENTATION);
+};
+
+void HapticWristImpl::setTarget(const jp_type& position) {
+    boost::lock_guard<boost::mutex> lock(set_mutex_);
+    position_des_ = position;
+    control_mode_.store(ControlMode::POSITION);
 };
 
 void HapticWristImpl::setOrientationGains(double kp, double kd) {
@@ -107,8 +129,8 @@ void HapticWristImpl::hold(bool hold) {
     boost::lock_guard<boost::mutex> lock(set_mutex_);
     if (hold) {
         // Capture the current orientation as the setpoint
-        orientation_des_ = getOrientation(); 
-        control_mode_.store(ControlMode::ORIENTATION);
+        position_des_ = getPosition();
+        control_mode_.store(ControlMode::POSITION);
     } else {
         // Release control
         control_mode_.store(ControlMode::NONE);
@@ -124,6 +146,37 @@ void HapticWristImpl::gravityCompensate(bool compensate) {
     gravity_compensate_.store(compensate);
 }
 
+void HapticWristImpl::moveTo(const jp_type& desiredPos, double vel, double accel) {
+    jp_type startPos = getPosition();
+    Trajectory<jp_type> trajectory(startPos, desiredPos, vel, accel); 
+
+    auto start_time = std::chrono::steady_clock::now();
+    double elapsed_seconds = 0.0;
+    double duration = trajectory.get_duration();
+    while (elapsed_seconds < duration) {
+        auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+        elapsed_seconds = std::chrono::duration<double>(elapsed_time).count();
+        jp_type target = trajectory.get_setpoint_at(elapsed_seconds);
+        setTarget(target);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+}
+
+void HapticWristImpl::moveTo(const Eigen::Quaterniond& desiredOrientation, double vel, double accel) {
+    Eigen::Quaterniond startOrientation = getOrientation();
+    Trajectory<Eigen::Quaterniond> trajectory(startOrientation, desiredOrientation, vel, accel); 
+
+    auto start_time = std::chrono::steady_clock::now();
+    double elapsed_seconds = 0.0;
+    double duration = trajectory.get_duration();
+    while (elapsed_seconds < duration) {
+        auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+        elapsed_seconds = std::chrono::duration<double>(elapsed_time).count();
+        Eigen::Quaterniond target = trajectory.get_setpoint_at(elapsed_seconds);
+        setTarget(target);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+}
 void HapticWristImpl::run() {
     if (!running_.load()) {
         running_.store(true);
@@ -141,6 +194,8 @@ void HapticWristImpl::stop() {
 // --- Main Control Loop ---
 bool HapticWristImpl::entryPoint() {
     while (running_.load()) {
+
+        const auto loop_start_time = std::chrono::steady_clock::now();
         jt_type total_joint_torques = jt_type::Zero();
         
         // --- State Snapshot ---
@@ -156,7 +211,19 @@ bool HapticWristImpl::entryPoint() {
 
         // --- Control Law Calculation ---
         ControlMode current_mode = control_mode_.load();
-        if (current_mode == ControlMode::ORIENTATION) {
+        if (current_mode == ControlMode::POSITION) {
+            Eigen::Vector3d local_desired_position;
+            {
+                boost::lock_guard<boost::mutex> lock(set_mutex_);
+                local_desired_position = position_des_;
+            }
+
+            jt_type joint_position_torque = joint_position_controller_->compute_torque(
+                local_desired_position, current_pos);
+
+            total_joint_torques += joint_position_torque;
+
+        } else if (current_mode == ControlMode::ORIENTATION) {
             Eigen::Quaterniond desired_orientation;
             {
                 boost::lock_guard<boost::mutex> lock(set_mutex_);
@@ -212,7 +279,7 @@ bool HapticWristImpl::entryPoint() {
                 boost::lock_guard<boost::mutex> lock(set_mutex_);
                 local_wrist_to_base = base_to_wrist_;
             }
-            std::array<Kin, 3> kin = kinematics_.eval(current_pos, local_wrist_to_base);
+            std::array<Kin, 4> kin = kinematics_.eval(current_pos, local_wrist_to_base);
             total_joint_torques += gravity_compensator_.eval(kin);
         }
         
@@ -223,7 +290,20 @@ bool HapticWristImpl::entryPoint() {
             running_.store(false);
         }
 
-        std::this_thread::sleep_for(std::chrono::microseconds(1000)); // ~1kHz loop
+
+        const auto elapsed_time = std::chrono::steady_clock::now() - loop_start_time;
+        const auto time_to_sleep = control_period_ - elapsed_time;
+
+        if (time_to_sleep > std::chrono::seconds::zero()) {
+            std::this_thread::sleep_for(time_to_sleep);
+        } else {
+            std::cerr << "Warning: Loop overrun detected! "
+                      << "Desired period: "
+                      << std::chrono::duration_cast<std::chrono::microseconds>(control_period_).count() << " us, "
+                      << "Actual time: "
+                      << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us"
+                      << std::endl;
+        }
     }
 
     // On exit, brake the motors
@@ -293,13 +373,12 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     {
         boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
         handle_theta_ = compute_pos(motor_theta);
-        handle_theta_[1] += M_PI/2;
         handle_dtheta_ = compute_vel(motor_dtheta);
         handle_torque_ = compute_torque(motor_torque);
 
         // Update orientation from new joint positions
-        std::array<Kin, 3> kin = kinematics_.eval(handle_theta_);
-        Eigen::Matrix3d rotation_matrix = kin[2].to_world_frame.block<3, 3>(0, 0);
+        std::array<Kin, 4> kin = kinematics_.eval(handle_theta_);
+        Eigen::Matrix3d rotation_matrix = kin[3].to_world_frame.block<3, 3>(0, 0);
         handle_orientation_ = Eigen::Quaterniond(rotation_matrix);
     }
     
@@ -319,6 +398,11 @@ jt_type HapticWristImpl::getTorque() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_torque_;
 }
+
+const Kinematics& HapticWristImpl::getKinematics() const {
+    return kinematics_;
+}
+
 Eigen::Quaterniond HapticWristImpl::getOrientation() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_orientation_;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "haptic_wrist/haptic_wrist.h"
+#include "haptic_wrist/types.h"
 class TrapezoidalVelocityProfile {
   public:
     TrapezoidalVelocityProfile(double vel, double acc, double v_init, double length);
@@ -20,4 +20,5 @@ class TrapezoidalVelocityProfile {
     double s_startdown;
     double time_end;
     double s_end;
+    
 };

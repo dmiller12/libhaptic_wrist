@@ -4,6 +4,7 @@
 #include <Eigen/Geometry>
 #include <memory>
 
+#include "haptic_wrist/kinematics.h"
 #include "haptic_wrist/types.h"
 
 
@@ -36,7 +37,14 @@ class HapticWrist {
      * The controller will generate torques to achieve this orientation.
      * @param orientation A quaternion representing the desired orientation in the base frame.
      */
-    void setOrientation(const Eigen::Quaterniond& orientation);
+    void setTarget(const Eigen::Quaterniond& orientation);
+
+    /**
+     * @brief Provide a desired joint position.
+     * The controller will generate torques to achieve this position.
+     * @param position Desired joint position in radians.
+     */
+    void setTarget(const jp_type& position);
 
     /**
      * @brief Sets the gains for the orientation controller.
@@ -87,12 +95,22 @@ class HapticWrist {
      * @return Current joint torques [N⋅m]: [T_Z1, T_Y2, T_Z3]
      */
     jt_type getTorque();
+
+    /**
+     * @brief Returns the kinematics
+     * @return Kinematics
+     */
+    const Kinematics& getKinematics() const;
     
     /**
      * @brief Moves to a desired joint position.
-     * NOTE: This function is incompatible with the orientation controller and will throw an exception.
      */
     void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
+
+    /**
+     * @brief Moves to a desired joint position.
+     */
+    void moveTo(const Eigen::Quaterniond& pos, double vel = 0.5, double accel = 0.5);
 
 
   private:

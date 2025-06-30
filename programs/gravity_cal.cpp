@@ -100,17 +100,9 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<haptic_wrist::jt_type> torques;
     std::vector<Eigen::Matrix4d> base_to_world;
 
-    std::vector<haptic_wrist::DHParameter> dh;
-    for (size_t i = 0; i < 3; i++) {
-        haptic_wrist::DHParameter dh_param;
-        dh_param.alpha_pi = yaml_config["kinematics"]["dh"][i]["alpha_pi"].as<double>();
-        dh_param.a = yaml_config["kinematics"]["dh"][i]["a"].as<double>();
-        dh_param.d = yaml_config["kinematics"]["dh"][i]["d"].as<double>();
-        dh.push_back(dh_param);
-    }
-    haptic_wrist::Kinematics kinematics(dh, Eigen::Matrix4d::Identity());
-
     haptic_wrist::HapticWrist hw;
+
+    haptic_wrist::Kinematics kinematics = hw.getKinematics();
     hw.gravityCompensate(false);
     hw.run();
 

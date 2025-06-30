@@ -3,26 +3,31 @@
 
 namespace haptic_wrist {
 
-Kinematics::Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d world_to_base)
+Kinematics::Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d eef_to_tool,  Eigen::Matrix4d world_to_base)
     : world_to_base_(world_to_base)
-    , dh_params_(dh) {
+    , dh_params_(dh)
+    , eef_to_tool_(eef_to_tool) {
 }
 
-std::array<Kin, 3> Kinematics::eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist) {
-    std::array<Kin, 3> kin;
+std::array<Kin, 4> Kinematics::eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist) {
+    std::array<Kin, 4> kin;
     Eigen::Matrix4d cumulative_transform = world_to_base_ * base_to_wrist;
 
     for (size_t i = 0; i < dh_params_.size(); i++) {
-        double total_theta = pos(i) + dh_params_[i].theta_pi * M_PI;
+        double total_theta = pos(i);
         Eigen::Matrix4d link_transform = computeTransform(dh_params_[i], total_theta);
         
         cumulative_transform = cumulative_transform * link_transform;
         kin[i] = Kin{link_transform, cumulative_transform};
     }
+    
+    cumulative_transform = cumulative_transform * eef_to_tool_;
+    kin[3] = Kin{eef_to_tool_, cumulative_transform};
+
     return kin;
 }
 
-std::array<Kin, 3> Kinematics::eval(const haptic_wrist::jp_type& pos) {
+std::array<Kin, 4> Kinematics::eval(const haptic_wrist::jp_type& pos) {
     return eval(pos, Eigen::Matrix4d::Identity());
 }
 
@@ -37,7 +42,7 @@ Eigen::Matrix<double, 3, 3> Kinematics::jacobian_omega(const haptic_wrist::jp_ty
     // kin[1].to_world_frame contains T_2^0
     // etc.
     // We assume the base frame is the world frame for the Jacobian calculation.
-    std::array<Kin, 3> kin = eval(pos, Eigen::Matrix4d::Identity());
+    std::array<Kin, 4> kin = eval(pos, Eigen::Matrix4d::Identity());
 
     // The axis of rotation for the first joint (joint 1) is the z-axis of the base frame (frame 0).
     J_omega.col(0) << 0, 0, 1;

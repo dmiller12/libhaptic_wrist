@@ -21,7 +21,7 @@ struct Kin {
 class Kinematics {
   public:
     Kinematics() = default;
-    Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d world_to_base);
+    Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d eef_to_tool, Eigen::Matrix4d world_to_base);
 
     /**
      * @brief Evaluates the forward kinematics for the given joint positions.
@@ -29,8 +29,8 @@ class Kinematics {
      * @param base_to_wrist An optional transformation from the wrist base to the world frame.
      * @return An array of kinematic transformations for each link.
      */
-    std::array<Kin, 3> eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist);
-    std::array<Kin, 3> eval(const haptic_wrist::jp_type& pos);
+    std::array<Kin, 4> eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist);
+    std::array<Kin, 4> eval(const haptic_wrist::jp_type& pos);
 
     /**
      * @brief Computes the angular part of the geometric Jacobian.
@@ -45,6 +45,7 @@ class Kinematics {
   private:
     Eigen::Matrix4d world_to_base_;
     std::vector<DHParameter> dh_params_;
+    Eigen::Matrix4d eef_to_tool_;
     Eigen::Matrix4d computeTransform(const DHParameter& dh, double theta);
 };
 

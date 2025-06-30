@@ -1,7 +1,7 @@
 
 add_executable(
   run_tests
-  test_example.cpp
+  test_kinematics.cpp
 )
 
 # Link the test executable against your library and its dependencies

@@ -9,14 +9,15 @@
 
 #include "haptic_wrist/gravity_comp.h"
 #include "haptic_wrist/kinematics.h"
-#include "haptic_wrist/orientation_controller.h"
 #include "haptic_wrist/types.h"
+#include "orientation_controller.h"
+#include "joint_position_controller.h"
+#include <atomic>
 #include <boost/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include <thread>
-#include <atomic>
 #include <memory>
+#include <thread>
 
 // Gear ratios for serial direct drive
 #define MOTOR_TO_JOINT_GEAR_RATIO_1 -1  // Motor 1 to Joint 1 (Z-axis)
@@ -27,8 +28,9 @@ namespace haptic_wrist {
 
 // Defines the active control strategy
 enum class ControlMode {
-    NONE,           // No active control, compliant.
-    ORIENTATION     // Actively controls end-effector orientation.
+    NONE,        // No active control, compliant.
+    POSITION,    // Actively controls joint position
+    ORIENTATION, // Actively controls end-effector orientation.
 };
 
 class HapticWristImpl {
@@ -39,16 +41,21 @@ class HapticWristImpl {
     void stop();
 
     // Control Methods
-    void setOrientation(const Eigen::Quaterniond& orientation);
+    void setTarget(const Eigen::Quaterniond& orientation);
+    void setTarget(const jp_type& Position);
     void setOrientationGains(double kp, double kd);
     void hold(bool hold);
     void gravityCompensate(bool compensate = true);
+    void moveTo(const jp_type& desiredPos, double vel, double accel);
+    void moveTo(const Eigen::Quaterniond& desiredOrientation, double vel, double accel);
     void setWristToBase(const Eigen::Matrix4d& transform);
+
 
     // Getters
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
+    const Kinematics& getKinematics() const;
     Eigen::Quaterniond getOrientation();
 
   private:
@@ -61,11 +68,15 @@ class HapticWristImpl {
     int missed_replies_ = 0;
 
     // Control state
+    const double control_rate_ = 1000.0;
+    const std::chrono::duration<double> control_period_;
     std::atomic<ControlMode> control_mode_{ControlMode::NONE};
     Eigen::Quaterniond orientation_des_;
+    jp_type position_des_;
     
     // Controllers and Kinematics
     std::unique_ptr<OrientationController> orientation_controller_;
+    std::unique_ptr<JointPositionController> joint_position_controller_;
     Kinematics kinematics_;
     GravityComp gravity_compensator_;
     

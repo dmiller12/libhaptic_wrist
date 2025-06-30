@@ -13,7 +13,7 @@ GravityComp::GravityComp(const Eigen::Matrix3d& mus)
     : mus_(mus) {
 }
 
-jt_type GravityComp::eval(const std::array<Kin, 3>& kin) {
+jt_type GravityComp::eval(const std::array<Kin, 4>& kin) {
 
     std::array<Eigen::Vector3d, 3> grav = computeGravity(kin);
 
@@ -21,7 +21,7 @@ jt_type GravityComp::eval(const std::array<Kin, 3>& kin) {
     Eigen::Vector3d prev_torque = Eigen::Vector3d::Zero();
     
     // Iterate backwards from the end-effector to the base
-    for (int i = kin.size() - 1; i >= 0; i--) {
+    for (int i = kin.size() - 2; i >= 0; i--) {
         // Get the center of mass vector for the current link
         Eigen::Vector3d mu = mus_.row(i);
         
@@ -44,11 +44,11 @@ jt_type GravityComp::eval(const std::array<Kin, 3>& kin) {
     return jt;
 }
 
-std::array<Eigen::Vector3d, 3> GravityComp::computeGravity(const std::array<Kin, 3>& kin) {
+std::array<Eigen::Vector3d, 3> GravityComp::computeGravity(const std::array<Kin, 4>& kin) {
     Eigen::Vector3d gravityBase(0, 0, G);
     std::array<Eigen::Vector3d, 3> grav;
     
-    for (size_t i = 0; i < kin.size(); i++) {
+    for (size_t i = 0; i < kin.size() - 1; i++) {
         // Get the rotation matrix from the world frame to the current link frame
         Eigen::Matrix3d R_world_to_link = kin[i].to_world_frame.block<3, 3>(0, 0);
         

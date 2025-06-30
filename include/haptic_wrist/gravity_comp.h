@@ -17,14 +17,14 @@ class GravityComp {
      * @param kin The kinematic chain transformations.
      * @return The 3x1 vector of joint torques to counteract gravity.
      */
-    jt_type eval(const std::array<Kin, 3>& kin);
+    jt_type eval(const std::array<Kin, 4>& kin);
 
     /**
      * @brief Helper function to compute the gravity vector for each link.
      * @param kin The kinematic chain transformations.
      * @return An array containing the gravity vector for each of the 3 links.
      */
-    static std::array<Eigen::Vector3d, 3> computeGravity(const std::array<Kin, 3>& kin);
+    static std::array<Eigen::Vector3d, 3> computeGravity(const std::array<Kin, 4>& kin);
 
   private:
 
