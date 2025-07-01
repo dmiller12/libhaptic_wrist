@@ -4,7 +4,6 @@
 class TrapezoidalVelocityProfile {
   public:
     TrapezoidalVelocityProfile(double vel, double acc, double v_init, double length);
-    haptic_wrist::jp_type eval();
     double eval(double t);
     double finalT();
 

@@ -82,7 +82,10 @@ public:
      * @return The angular distance in radians.
      */
     double getTotalChange() const {
-        return start_q_.angularDistance(end_q_);
+        Eigen::Quaterniond diff = end_q_ * start_q_.inverse();
+
+        Eigen::AngleAxisd diff_aa(diff);
+        return diff_aa.angle();
     }
 
 private:
