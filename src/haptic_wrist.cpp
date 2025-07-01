@@ -51,6 +51,10 @@ void HapticWrist::moveTo(const jp_type& desiredPos, double vel, double accel) {
     return impl->moveTo(desiredPos, vel, accel);
 }
 
+void HapticWrist::moveTo(const Eigen::Quaterniond& desiredOrientation, double vel, double accel) {
+    return impl->moveTo(desiredOrientation, vel, accel);
+}
+
 void HapticWrist::gravityCompensate(bool compensate) {
     impl->gravityCompensate(compensate);
 }

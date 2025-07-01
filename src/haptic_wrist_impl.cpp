@@ -20,11 +20,11 @@ HapticWristImpl::HapticWristImpl()
 
     // Initialize the orientation controller with default gains.
     // These should be tuned for your specific hardware.
-    orientation_controller_ = std::make_unique<OrientationController>(20.0, 0.5); // Kp=20, Kd=0.5
+    orientation_controller_ = std::make_unique<OrientationController>(8.0, 0.08); // Kp=20, Kd=0.5
 
     Eigen::Vector3d kp, kd; 
-    kp << 1.0, 1.0, 1.0;
-    kd << 0.1, 0.1, 0.1;
+    kp << 3.2, 2.0, 1.0;
+    kd << 0.08, 0.04, 0.01;
     joint_position_controller_ = std::make_unique<JointPositionController>(kp, kd, control_period_.count());
 
     // Transformation matrices for motor/joint conversions
@@ -177,6 +177,7 @@ void HapticWristImpl::moveTo(const Eigen::Quaterniond& desiredOrientation, doubl
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
+
 void HapticWristImpl::run() {
     if (!running_.load()) {
         running_.store(true);
@@ -297,12 +298,12 @@ bool HapticWristImpl::entryPoint() {
         if (time_to_sleep > std::chrono::seconds::zero()) {
             std::this_thread::sleep_for(time_to_sleep);
         } else {
-            std::cerr << "Warning: Loop overrun detected! "
-                      << "Desired period: "
-                      << std::chrono::duration_cast<std::chrono::microseconds>(control_period_).count() << " us, "
-                      << "Actual time: "
-                      << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us"
-                      << std::endl;
+            // std::cerr << "Warning: Loop overrun detected! "
+            //           << "Desired period: "
+            //           << std::chrono::duration_cast<std::chrono::microseconds>(control_period_).count() << " us, "
+            //           << "Actual time: "
+            //           << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us"
+            //           << std::endl;
         }
     }
 
@@ -380,6 +381,7 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         std::array<Kin, 4> kin = kinematics_.eval(handle_theta_);
         Eigen::Matrix3d rotation_matrix = kin[3].to_world_frame.block<3, 3>(0, 0);
         handle_orientation_ = Eigen::Quaterniond(rotation_matrix);
+        handle_orientation_.normalize();
     }
     
     return false; // No error

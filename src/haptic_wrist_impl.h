@@ -21,7 +21,7 @@
 
 // Gear ratios for serial direct drive
 #define MOTOR_TO_JOINT_GEAR_RATIO_1 -1  // Motor 1 to Joint 1 (Z-axis)
-#define MOTOR_TO_JOINT_GEAR_RATIO_2 -1 // Motor 2 to Joint 2 (Y-axis)
+#define MOTOR_TO_JOINT_GEAR_RATIO_2 1 // Motor 2 to Joint 2 (Y-axis)
 #define MOTOR_TO_JOINT_GEAR_RATIO_3 -1 // Motor 3 to Joint 3 (Z-axis)
 
 namespace haptic_wrist {
@@ -68,7 +68,7 @@ class HapticWristImpl {
     int missed_replies_ = 0;
 
     // Control state
-    const double control_rate_ = 1000.0;
+    const double control_rate_ = 250.0;
     const std::chrono::duration<double> control_period_;
     std::atomic<ControlMode> control_mode_{ControlMode::NONE};
     Eigen::Quaterniond orientation_des_;

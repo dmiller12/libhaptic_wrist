@@ -110,7 +110,7 @@ class HapticWrist {
     /**
      * @brief Moves to a desired joint position.
      */
-    void moveTo(const Eigen::Quaterniond& pos, double vel = 0.5, double accel = 0.5);
+    void moveTo(const Eigen::Quaterniond& orientation, double vel = 0.5, double accel = 0.5);
 
 
   private:
