@@ -260,6 +260,7 @@ bool HapticWristImpl::entryPoint() {
             total_joint_torques += gravity_compensator_.eval(kin);
         }
         
+
         // --- Command Execution ---
         mt_type motor_torques = jtmp_matrix_ * total_joint_torques;
         if (executeControl(motor_torques)) {
@@ -271,6 +272,7 @@ bool HapticWristImpl::entryPoint() {
         const auto elapsed_time = std::chrono::steady_clock::now() - loop_start_time;
         const auto time_to_sleep = control_period_ - elapsed_time;
 
+        // std::cout << "Total Time: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us" << std::endl;
         if (time_to_sleep > std::chrono::seconds::zero()) {
             std::this_thread::sleep_for(time_to_sleep);
         } else {

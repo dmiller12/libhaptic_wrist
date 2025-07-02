@@ -20,3 +20,10 @@ target_link_libraries(test_wrist
     pthread
     yaml-cpp
 )
+
+add_executable(simple_commands simple_commands.cpp)
+target_include_directories(simple_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(simple_commands 
+    haptic_wrist
+    pthread
+)
