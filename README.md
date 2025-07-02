@@ -34,3 +34,13 @@ Zero position is set when haptic wrist is powered up, not when process started. 
 
 If present, reads config files from `~/.config/haptic_wrist`. Otherwise reads from `/etc/haptic_wrist`.
 Overwrite the config dir location with env variable HAPTIC_WRIST_CONFIG_DIR
+
+### moteus commands
+Zeros the moteus
+```bash
+python3 -m moteus.moteus_tool --target 1,2,3 --zero-offset
+```
+Open tview:
+```bash
+python3 -m moteus_gui.tview --target 1,2,3
+```
