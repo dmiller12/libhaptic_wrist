@@ -79,6 +79,12 @@ class HapticWrist {
     void hold(bool hold);
 
     /**
+     * @brief Returns the home position.
+     * @return Home position [rad]: [Z1, Y2, Z3]
+     */
+    jp_type getHome() const;
+
+    /**
      * @brief Returns the current joint positions.
      * @return Current joint positions [rad]: [Z1, Y2, Z3]
      */

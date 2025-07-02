@@ -122,7 +122,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::cout << "Moving to\n" << poses[i] << std::endl;
 
         hw.moveTo(poses[i]);
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         Eigen::Matrix<double, NUM_POINTS, 3> jp;
         Eigen::Matrix<double, NUM_POINTS, 3> jt;
@@ -136,7 +136,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         positions.push_back(jp.colwise().mean());
         torques.push_back(jt.colwise().mean());
     }
-    hw.moveTo({0, -1.5708, 0});
+    hw.moveTo(hw.getHome());
     wam.moveHome();
     hw.stop();
 

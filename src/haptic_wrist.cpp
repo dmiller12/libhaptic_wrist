@@ -31,6 +31,10 @@ void HapticWrist::setWristToBase(const Eigen::Matrix4d& transform) {
     impl->setWristToBase(transform);
 }
 
+jp_type HapticWrist::getHome() const {
+    return impl->getHome();
+}
+
 jp_type HapticWrist::getPosition() {
     return impl->getPosition();
 }

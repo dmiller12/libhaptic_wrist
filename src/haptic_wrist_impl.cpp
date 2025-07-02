@@ -1,9 +1,11 @@
 #include "haptic_wrist_impl.h"
+#include "haptic_wrist/haptic_wrist_config.h"
 #include "utils.h"
 #include "yaml-cpp/yaml.h"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include "trajectory.h"
+#include "config_loader.h"
 
 using namespace mjbots;
 
@@ -18,81 +20,42 @@ HapticWristImpl::HapticWristImpl()
     , control_period_(1.0 / control_rate_) {
 
 
-    // Initialize the orientation controller with default gains.
-    // These should be tuned for your specific hardware.
-    orientation_controller_ = std::make_unique<OrientationController>(8.0, 0.08); // Kp=20, Kd=0.5
-
-    Eigen::Vector3d kp, kd; 
-    kp << 3.2, 2.0, 1.0;
-    kd << 0.08, 0.04, 0.01;
-    joint_position_controller_ = std::make_unique<JointPositionController>(kp, kd, control_period_.count());
-
-    // Transformation matrices for motor/joint conversions
-    jtmp_matrix_ = Eigen::Matrix3d::Zero();
-    jtmp_matrix_(0, 0) = 1.0 / MOTOR_TO_JOINT_GEAR_RATIO_1;
-    jtmp_matrix_(1, 1) = 1.0 / MOTOR_TO_JOINT_GEAR_RATIO_2;
-    jtmp_matrix_(2, 2) = 1.0 / MOTOR_TO_JOINT_GEAR_RATIO_3;
-
-    mtjp_matrix_ = jtmp_matrix_.inverse();
-
-    // Load DH parameters and gravity compensation data from YAML files
     std::string config_dir = get_config_directory();
     if (config_dir.empty()) {
         throw std::runtime_error("No valid configuration directory found.");
     }
 
-    try {
-        boost::filesystem::path config_file = boost::filesystem::path(config_dir) / "haptic_wrist.yaml";
-        YAML::Node yaml_config = YAML::LoadFile(config_file.string());
-        std::vector<DHParameter> dh;
-        for (size_t i = 0; i < 3; i++) {
-            DHParameter p;
-            p.alpha_pi = yaml_config["kinematics"]["dh"][i]["alpha_pi"].as<double>();
-            p.a = yaml_config["kinematics"]["dh"][i]["a"].as<double>();
-            p.d = yaml_config["kinematics"]["dh"][i]["d"].as<double>();
-            
-            // Safely load theta_pi, as it may not exist for all joints.
-            if (yaml_config["kinematics"]["dh"][i]["theta_pi"]) {
-                p.theta_pi = yaml_config["kinematics"]["dh"][i]["theta_pi"].as<double>();
-            } else {
-                p.theta_pi = 0.0;
-            }
-            dh.push_back(p);
-        }
+    HapticWristConfig config = load_config(config_dir);
 
-        Eigen::Matrix4d eef_to_tool;
-        for (int i=0; i < 4; i++) {
-            const YAML::Node& row = yaml_config["kinematics"]["eef_to_tool"][i];
-            for (int j = 0; j< 4; j++){
-                eef_to_tool(i, j) = row[j].as<double>();
-            }
-        }
+    home_ = config.home_position;
 
-        kinematics_ = Kinematics(dh, eef_to_tool, Eigen::Matrix4d::Identity());
+    kinematics_ = Kinematics(config.dh_parameters, config.eef_to_tool, Eigen::Matrix4d::Identity());
+    gravity_compensator_ = GravityComp(config.gravity_mus);
 
-        config_file = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
-        YAML::Node mu_config = YAML::LoadFile(config_file.string());
-        Eigen::Matrix3d mus;
-        for (size_t row = 0; row < 3; row++) {
-            for (size_t col = 0; col < 3; col++) {
-                mus(row, col) = mu_config["mus"][row][col].as<double>();
-            }
-        }
-        gravity_compensator_ = GravityComp(mus);
-    } catch (const YAML::Exception& e) {
-        std::cerr << "Error loading configuration file: " << e.what() << std::endl;
-        throw;
-    }
+    orientation_controller_ =
+        std::make_unique<OrientationController>(config.orientation_controller.kp, config.orientation_controller.kd);
+
+    joint_position_controller_ = std::make_unique<JointPositionController>(
+        config.joint_position_controller.kp, config.joint_position_controller.kd, control_period_.count());
+
+    // Transformation matrices for motor/joint conversions
+    jtmp_matrix_ = config.j2mp;
+    mtjp_matrix_ = jtmp_matrix_.inverse();
 
     // Configure Moteus controllers for TORQUE control
     moteus::Controller::Options options_common;
     auto& pf = options_common.position_format;
     pf.position = moteus::kIgnore;
-    pf.velocity = moteus::kInt8;
+    pf.velocity = moteus::kIgnore; // Defaults to zero, no need to send
     pf.feedforward_torque = moteus::kFloat;
-    pf.kp_scale = moteus::kInt8; // We will send 0 for these scales
-    pf.kd_scale = moteus::kInt8;
+    // defaults to one, modify the kp and kd directly
+    pf.kd_scale = moteus::kIgnore; 
+    pf.kp_scale = moteus::kIgnore; 
     
+    auto& qf = options_common.query_format;
+    qf.voltage = moteus::kIgnore;
+    qf.temperature = moteus::kIgnore;
+
     transport_ = moteus::Controller::MakeSingletonTransport({});
     controllers_ = {
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 1; return opts; }()),
@@ -100,8 +63,21 @@ HapticWristImpl::HapticWristImpl()
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }())
     };
 
-    // Initialize motors to a stopped state
-    for (auto& c : controllers_) { c->SetStop(); }
+    // Set moteus params and initialize motors to a stopped state
+    size_t i = 0;
+    for (auto& c : controllers_) {
+        c->DiagnosticWrite("tel stop\n");
+        c->DiagnosticFlush();
+        std::ostringstream ostr;
+        ostr << "conf set servo.pid_position.kp " << 0;
+        c->DiagnosticCommand(ostr.str());
+        ostr << "conf set servo.pid_position.ki " << 0;
+        c->DiagnosticCommand(ostr.str());
+        ostr << "conf set servo.pid_position.kd " << config.moteus.kd(i);
+        c->DiagnosticCommand(ostr.str());
+        c->SetStop();
+        ++i;
+    }
 };
 
 HapticWristImpl::~HapticWristImpl() {
@@ -319,15 +295,16 @@ bool HapticWristImpl::entryPoint() {
 bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     send_frames_.clear();
     for (size_t i = 0; i < controllers_.size(); i++) {
-        cmd_.kp_scale = 0.0;
-        cmd_.kd_scale = 0.1;
-        cmd_.velocity = 0.0;
         cmd_.feedforward_torque = des_motor_torque(i);
         send_frames_.push_back(controllers_[i]->MakePosition(cmd_));
     }
 
     receive_frames_.clear();
+    
+    const auto can_start_time = std::chrono::steady_clock::now();
     transport_->BlockingCycle(&send_frames_[0], send_frames_.size(), &receive_frames_);
+    const auto elapsed_time = std::chrono::steady_clock::now() - can_start_time;
+    // std::cout << "Can period: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us" << std::endl;
 
     // --- Parse Responses and Update State ---
     auto maybe_servo1 = FindServo(receive_frames_, 1);
@@ -388,6 +365,10 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
 }
 
 // --- Getters and Helper Methods ---
+jp_type HapticWristImpl::getHome() const {
+    return home_;
+}
+
 jp_type HapticWristImpl::getPosition() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_theta_;
