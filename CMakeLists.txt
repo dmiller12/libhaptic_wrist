@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project(haptic_wrist VERSION 2.0.0)
 
+option(BUILD_BARRETT "Build executables that depend on libbarrett" ON)
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -18,6 +20,15 @@ FetchContent_Declare(
   GIT_TAG "0.8.0"
 )
 FetchContent_MakeAvailable(yaml-cpp)
+
+enable_testing()
+
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+FetchContent_MakeAvailable(googletest)
 
 find_package(Eigen3 REQUIRED)
 find_package(Boost COMPONENTS thread filesystem REQUIRED)
@@ -95,3 +106,5 @@ install(FILES
 )
 
 add_subdirectory(programs)
+add_subdirectory(tests)
+

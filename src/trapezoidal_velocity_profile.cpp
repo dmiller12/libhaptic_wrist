@@ -1,4 +1,4 @@
-#include "haptic_wrist/trapezoidal_velocity_profile.h"
+#include "trapezoidal_velocity_profile.h"
 
 TrapezoidalVelocityProfile::TrapezoidalVelocityProfile(double vel, double acc, double v_init, double length)
     : vel(vel)

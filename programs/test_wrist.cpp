@@ -13,38 +13,15 @@
 #include <boost/filesystem.hpp>
 
 // Helper function to calculate the robot's true home orientation from DH parameters
-Eigen::Quaterniond get_home_orientation() {
-    std::string config_dir = get_config_directory();
-    if (config_dir.empty()) {
-        throw std::runtime_error("Config directory not found.");
-    }
-
-    boost::filesystem::path config_file = boost::filesystem::path(config_dir) / "haptic_wrist.yaml";
-    YAML::Node yaml_config = YAML::LoadFile(config_file.string());
-    
-    // Use the haptic_wrist namespace to access DHParameter
-    std::vector<haptic_wrist::DHParameter> dh;
-    for (size_t i = 0; i < 3; i++) {
-        haptic_wrist::DHParameter dh_param;
-        dh_param.alpha_pi = yaml_config["kinematics"]["dh"][i]["alpha_pi"].as<double>();
-        dh_param.a = yaml_config["kinematics"]["dh"][i]["a"].as<double>();
-        dh_param.d = yaml_config["kinematics"]["dh"][i]["d"].as<double>();
-        if (yaml_config["kinematics"]["dh"][i]["theta_pi"]) {
-            dh_param.theta_pi = yaml_config["kinematics"]["dh"][i]["theta_pi"].as<double>();
-        } else {
-            dh_param.theta_pi = 0.0;
-        }
-        dh.push_back(dh_param);
-    }
-
+Eigen::Quaterniond get_home_orientation(const haptic_wrist::HapticWrist& hw) {
     // Use the haptic_wrist namespace to access Kinematics
-    haptic_wrist::Kinematics kinematics(dh, Eigen::Matrix4d::Identity());
+    haptic_wrist::Kinematics kinematics = hw.getKinematics();
     
     // Evaluate kinematics at the zero position. Use the haptic_wrist namespace for Kin.
-    std::array<haptic_wrist::Kin, 3> kin_at_home = kinematics.eval({0.0, 0.0, 0.0});
+    std::array<haptic_wrist::Kin, 4> kin_at_home = kinematics.eval({0.0, 0.0, 0.0});
     
     // The home orientation is the rotation matrix of the final link
-    Eigen::Matrix3d home_rotation = kin_at_home[2].to_world_frame.block<3, 3>(0, 0);
+    Eigen::Matrix3d home_rotation = kin_at_home[3].to_world_frame.block<3, 3>(0, 0);
     return Eigen::Quaterniond(home_rotation);
 }
 
@@ -61,11 +38,11 @@ void execute_smooth_move(haptic_wrist::HapticWrist& wrist, const Eigen::Quaterni
     
     while (!trajectory.is_done()) {
         Eigen::Quaterniond setpoint_q = trajectory.get_setpoint(1.0 / loop_rate_hz);
-        wrist.setOrientation(setpoint_q);
+        wrist.setTarget(setpoint_q);
         std::this_thread::sleep_for(loop_period);
     }
     // Ensure the final target orientation is set
-    wrist.setOrientation(target_q);
+    wrist.setTarget(target_q);
 }
 
 int main() {
@@ -73,7 +50,7 @@ int main() {
         haptic_wrist::HapticWrist wrist;
 
         // Calculate the robot's true home orientation from its DH parameters
-        const Eigen::Quaterniond home_orientation = get_home_orientation();
+        const Eigen::Quaterniond home_orientation = get_home_orientation(wrist);
         std::cout << "Robot's true home orientation calculated." << std::endl;
 
         std::cout << "Starting Haptic Wrist controller..." << std::endl;
