@@ -35,8 +35,40 @@ Zero position is set when haptic wrist is powered up, not when process started. 
 If present, reads config files from `~/.config/haptic_wrist`. Otherwise reads from `/etc/haptic_wrist`.
 Overwrite the config dir location with env variable HAPTIC_WRIST_CONFIG_DIR
 
-### moteus commands
-Zeros the moteus
+### Configuring a PEAK CAN FD PCIe card
+If using the peak CANFD PCIe card, first identify the network interface name assigned to the CANFD card:
+
+The interface can be found by loading the module:
+
+```bash
+sudo modprobe peak_pciefd
+```
+and running the following command:
+
+```bash
+dmesg | grep peak_pciefd
+```
+Now configure the interface. Replace your `<your-can-interface` with your actual interface name.
+```bash
+sudo modprobe peak_pciefd
+
+ip link set <your-can-interface> up type can \
+  bitrate 1000000 dbitrate 5000000 \
+  sjw 10 dsjw 5 \
+  sample-point 0.666 dsample-point 0.666 \
+  restart-ms 1000 fd on
+```
+Finally, update the config and ensure `transport_args` matches the interface name you identified and configured.
+```yaml
+moteus:
+  # ... other settings
+  transport_args: ["--socketcan-iface", "<your-can-interface>"]
+```
+
+**If the transport_args are not provided or an empty string is used, the default fdcanusb transport method will be used.**
+
+### Common Moteus Commands
+Zero the moteus
 ```bash
 python3 -m moteus.moteus_tool --target 1,2,3 --zero-offset
 ```

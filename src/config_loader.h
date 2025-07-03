@@ -10,6 +10,9 @@ template <>
 struct convert<MoteusConfig> {
     static bool decode(const Node& node, MoteusConfig& c) {
         c.kd = node["kd"].as<Eigen::Vector3d>();
+        if (node["transport_args"]) {
+            c.transport_args = node["transport_args"].as<std::vector<std::string>>();
+        }
         return true;
     }
 };
