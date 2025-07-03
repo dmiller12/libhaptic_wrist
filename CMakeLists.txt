@@ -3,6 +3,8 @@ project(haptic_wrist VERSION 2.0.0)
 
 option(BUILD_BARRETT "Build executables that depend on libbarrett" ON)
 
+option(BUILD_BARRETT "Build executables that depend on libbarrett" ON)
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
