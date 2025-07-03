@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
-project(haptic_wrist VERSION 1.0.0)
+project(haptic_wrist VERSION 2.0.0)
+
+option(BUILD_BARRETT "Build executables that depend on libbarrett" ON)
 
 option(BUILD_BARRETT "Build executables that depend on libbarrett" ON)
 

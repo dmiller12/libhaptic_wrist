@@ -100,19 +100,10 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<haptic_wrist::jt_type> torques;
     std::vector<Eigen::Matrix4d> base_to_world;
 
-    std::vector<DHParameter> dh;
-    for (size_t i = 0; i < 3; i++) {
-        DHParameter dh_param;
-        dh_param.alpha_pi = yaml_config["kinematics"]["dh"][i]["alpha_pi"].as<double>();
-        dh_param.a = yaml_config["kinematics"]["dh"][i]["a"].as<double>();
-        dh_param.d = yaml_config["kinematics"]["dh"][i]["d"].as<double>();
-        dh.push_back(dh_param);
-    }
-    Kinematics kinematics(dh, Eigen::Matrix4d::Identity());
-
     haptic_wrist::HapticWrist hw;
+
+    haptic_wrist::Kinematics kinematics = hw.getKinematics();
     hw.gravityCompensate(false);
-    hw.setPosition({0, 0, 0});
     hw.run();
 
     auto out_file = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
@@ -121,7 +112,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::cout << "Program canceled." << std::endl;
         return 1;
     }
-
+    hw.hold(true);
     for (size_t i = 0; i < poses.size(); i++) {
         std::cout << "Moving to\n" << wam_poses[i] << std::endl;
         wam.moveTo(wam_poses[i], true);
@@ -131,7 +122,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::cout << "Moving to\n" << poses[i] << std::endl;
 
         hw.moveTo(poses[i]);
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         Eigen::Matrix<double, NUM_POINTS, 3> jp;
         Eigen::Matrix<double, NUM_POINTS, 3> jt;
@@ -145,7 +136,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         positions.push_back(jp.colwise().mean());
         torques.push_back(jt.colwise().mean());
     }
-    hw.moveTo({0, 0, 0});
+    hw.moveTo(hw.getHome());
     wam.moveHome();
     hw.stop();
 
@@ -169,7 +160,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     for (size_t i = 0; i < poses.size(); i++) {
         // need gravity vector for each joint
         auto kin = kinematics.eval(positions[i], base_to_world[i]);
-        auto grav = GravityComp::computeGravity(kin);
+        auto grav = haptic_wrist::GravityComp::computeGravity(kin);
         for (size_t j = 0; j < 3; j++) {
             // grav skew matrix
             GT[j].block<3, 3>(3 * i, 0) = skewSymmetric(grav[j]);

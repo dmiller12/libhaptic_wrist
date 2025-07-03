@@ -1,16 +1,13 @@
 #include "haptic_wrist/haptic_wrist.h"
 #include <barrett/units.h>
 
+#include "tool_frame_cb.h"
 #include <barrett/products/product_manager.h>
 #include <barrett/standard_main_function.h>
 #include <barrett/systems.h>
-#include "tool_frame_cb.h"
-
 BARRETT_UNITS_FIXED_SIZE_TYPEDEFS;
-
-
 template <size_t DOF>
-int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::systems::Wam<DOF> &wam) {
+int wam_main(int argc, char** argv, barrett::ProductManager& pm, barrett::systems::Wam<DOF>& wam) {
     BARRETT_UNITS_TEMPLATE_TYPEDEFS(DOF);
     wam.gravityCompensate();
 

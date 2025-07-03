@@ -3,12 +3,18 @@
 #include <Eigen/Dense>
 
 namespace haptic_wrist {
-using jp_type = Eigen::Vector3d;
-using jv_type = Eigen::Vector3d;
-using jt_type = Eigen::Vector3d;
+// Joint-space types
+using jp_type = Eigen::Vector3d; // Joint Position
+using jv_type = Eigen::Vector3d; // Joint Velocity
+using jt_type = Eigen::Vector3d; // Joint Torque
 
-using mp_type = Eigen::Vector3d;
-using mv_type = Eigen::Vector3d;
-using mt_type = Eigen::Vector3d;
+// Motor-space types
+using mp_type = Eigen::Vector3d; // Motor Position
+using mv_type = Eigen::Vector3d; // Motor Velocity
+using mt_type = Eigen::Vector3d; // Motor Torque
+
+// Cartesian-space types (for the end-effector)
+using cv_type = Eigen::Vector3d; // Cartesian Velocity (angular)
+using ct_type = Eigen::Vector3d; // Cartesian Torque (angular)
 
 } // namespace haptic_wrist

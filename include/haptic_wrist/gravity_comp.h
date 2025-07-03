@@ -2,16 +2,35 @@
 
 #include "haptic_wrist/kinematics.h"
 #include "haptic_wrist/types.h"
+#include <Eigen/Dense>
+#include <array>
+
+namespace haptic_wrist {
 
 class GravityComp {
   public:
     GravityComp()
-        : mus(Eigen::Matrix3d::Zero()) {};
-    GravityComp(Eigen::Matrix3d mus);
-    haptic_wrist::jt_type eval(std::array<Kin, 3> kin);
-    double gravity = -9.81;
-    static std::array<Eigen::Vector3d, 3> computeGravity(std::array<Kin, 3> kin);
+        : mus_(Eigen::Matrix3d::Zero()) {};
+
+    GravityComp(const Eigen::Matrix3d& mus);
+
+    /**
+     * @brief Computes the gravity compensation torques.
+     * @param kin The kinematic chain transformations.
+     * @return The 3x1 vector of joint torques to counteract gravity.
+     */
+    jt_type eval(const std::array<Kin, 4>& kin);
+
+    /**
+     * @brief Helper function to compute the gravity vector for each link.
+     * @param kin The kinematic chain transformations.
+     * @return An array containing the gravity vector for each of the 3 links.
+     */
+    static std::array<Eigen::Vector3d, 3> computeGravity(const std::array<Kin, 4>& kin);
 
   private:
-    Eigen::Matrix3d mus;
+    // Matrix of coefficients for the gravity model (link masses and center of mass)
+    Eigen::Matrix3d mus_;
 };
+
+} // namespace haptic_wrist
