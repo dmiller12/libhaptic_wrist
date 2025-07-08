@@ -328,9 +328,10 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     const auto& v2 = *maybe_servo2;
     const auto& v3 = *maybe_servo3;
 
+
     if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault) {
         std::cerr << "ERROR: Servo fault detected. " 
-                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << std::endl;
+                  << "S1:" << static_cast<int>(v1.fault) << " S2:" << static_cast<int>(v2.fault) << " S3:" << static_cast<int>(v3.fault) << std::endl;
         return true; // Return true for error
     }
 
