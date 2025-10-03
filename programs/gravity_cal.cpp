@@ -9,6 +9,10 @@
 
 #include <barrett/standard_main_function.h>
 #define NUM_POINTS 2000
+#define ANGLE_DIFF 0.03
+#define SLOW_VEL (0.05)
+#define SLOW_ACCEL (0.05)
+
 
 void print_usage(char *program_name) {
     printf("Usage: %s [options]\n", program_name);
@@ -113,25 +117,44 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         return 1;
     }
     hw.hold(true);
+    haptic_wrist::jp_type angle_diffs;
+    angle_diffs << ANGLE_DIFF, ANGLE_DIFF, ANGLE_DIFF;
+
     for (size_t i = 0; i < poses.size(); i++) {
-        std::cout << "Moving to\n" << wam_poses[i] << std::endl;
+        std::cout << "Moving WAM to: " << wam_poses[i].transpose() << std::endl;
         wam.moveTo(wam_poses[i], true);
         auto wamPose = wam.getToolPose();
 
         base_to_world.push_back(posQuatToTransform(boost::get<0>(wamPose), boost::get<1>(wamPose)));
-        std::cout << "Moving to\n" << poses[i] << std::endl;
+        std::cout << "Moving wrist to: " << poses[i].transpose() << std::endl;
 
-        hw.moveTo(poses[i]);
+        Eigen::Matrix<double, NUM_POINTS * 2, 3> jp;
+        Eigen::Matrix<double, NUM_POINTS * 2, 3> jt;
+
+        hw.moveTo(poses[i] + angle_diffs);
+        hw.moveTo(poses[i], SLOW_VEL, SLOW_ACCEL);
         std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        Eigen::Matrix<double, NUM_POINTS, 3> jp;
-        Eigen::Matrix<double, NUM_POINTS, 3> jt;
 
         for (int n = 0; n < NUM_POINTS; n++) {
             jp.row(n) = hw.getPosition();
             jt.row(n) = hw.getTorque();
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
+
+        hw.moveTo(poses[i] - angle_diffs);
+        hw.moveTo(poses[i], SLOW_VEL, SLOW_ACCEL);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        for (int n = NUM_POINTS; n < NUM_POINTS*2; n++) {
+            jp.row(n) = hw.getPosition();
+            jt.row(n) = hw.getTorque();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+
+        auto torque_top = jt.topRows(NUM_POINTS).colwise().mean();
+        auto torque_bottom = jt.bottomRows(NUM_POINTS).colwise().mean();
+        auto friction_estimate = (torque_top - torque_bottom) / 2.0;
+        std::cout << "Friction Estimate: " << friction_estimate.transpose() << std::endl;
 
         positions.push_back(jp.colwise().mean());
         torques.push_back(jt.colwise().mean());
