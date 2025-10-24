@@ -4,6 +4,7 @@
 #include "utils.h" // For get_config_directory
 #include "yaml-cpp/yaml.h"
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -25,21 +26,36 @@ Eigen::Quaterniond get_home_orientation(const haptic_wrist::HapticWrist& hw) {
     return Eigen::Quaterniond(home_rotation);
 }
 
+static double quaternion_distance(const Eigen::Quaterniond& start, const Eigen::Quaterniond& end) {
+    Eigen::Quaterniond diff = end * start.conjugate();
+    Eigen::AngleAxisd diff_aa(diff);
+    return diff_aa.angle();
+}
 
 /**
  * @brief Executes a smooth move to a target orientation.
  */
 void execute_smooth_move(haptic_wrist::HapticWrist& wrist, const Eigen::Quaterniond& target_q, double duration) {
     Eigen::Quaterniond start_q = wrist.getOrientation();
-    haptic_wrist::Trajectory trajectory(start_q, target_q, duration);
+    const double desired_duration = std::max(duration, 1e-3);
+    const double travel_angle = quaternion_distance(start_q, target_q);
+    const double min_param = 1e-3;
+    double max_vel = travel_angle > min_param ? 2.0 * travel_angle / desired_duration : min_param;
+    double max_acc = travel_angle > min_param ? 4.0 * travel_angle / (desired_duration * desired_duration) : min_param;
+    haptic_wrist::Trajectory<Eigen::Quaterniond> trajectory(start_q, target_q, max_vel, max_acc);
 
     const int loop_rate_hz = 500;
     const auto loop_period = std::chrono::microseconds(1000000 / loop_rate_hz);
     
-    while (!trajectory.is_done()) {
-        Eigen::Quaterniond setpoint_q = trajectory.get_setpoint(1.0 / loop_rate_hz);
+    double elapsed = 0.0;
+    const double total_duration = trajectory.get_duration();
+    const double loop_dt = 1.0 / loop_rate_hz;
+
+    while (elapsed < total_duration) {
+        Eigen::Quaterniond setpoint_q = trajectory.get_setpoint_at(elapsed);
         wrist.setTarget(setpoint_q);
         std::this_thread::sleep_for(loop_period);
+        elapsed += loop_dt;
     }
     // Ensure the final target orientation is set
     wrist.setTarget(target_q);

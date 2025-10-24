@@ -1,4 +1,6 @@
-#include "trapezoidal_velocity_profile.h"
+#include "haptic_wrist/trapezoidal_velocity_profile.h"
+
+namespace haptic_wrist {
 
 TrapezoidalVelocityProfile::TrapezoidalVelocityProfile(double vel, double acc, double v_init, double length)
     : vel(vel)
@@ -100,3 +102,5 @@ double TrapezoidalVelocityProfile::eval(double t) {
 double TrapezoidalVelocityProfile::finalT() {
     return time_end;
 }
+
+} // namespace haptic_wrist

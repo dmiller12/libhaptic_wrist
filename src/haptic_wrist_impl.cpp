@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include "trajectory.h"
+#include "haptic_wrist/trajectory.h"
 #include "config_loader.h"
 
 using namespace mjbots;
