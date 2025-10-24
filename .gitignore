@@ -86,3 +86,7 @@ core.*
 tmp/
 temp/
 *.tmp
+
+# Other
+.cache/
+compile_commands.json
