@@ -4,6 +4,8 @@
 #include <Eigen/Geometry>
 #include <cmath>
 
+namespace haptic_wrist {
+
 /**
  * @brief Primary template for linear interpolation between two points.
  * Works for vector-like types that support +, -, and *double.
@@ -93,3 +95,4 @@ private:
     Eigen::Quaterniond end_q_;
 };
 
+} // namespace haptic_wrist
