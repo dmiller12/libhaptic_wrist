@@ -8,9 +8,9 @@ moteus:
 
 kinematics:
   dh:
-    - {alpha_pi: -0.5,  a: 0, d: 0.465}
-    - {alpha_pi: 0.5,  a: 0, d: 0}
-    - {alpha_pi:  0.0,  a: 0, d: 0.005}
+    - {alpha_pi: -0.5,  a: 0, d: 0.465, theta_pi: 0.0}
+    - {alpha_pi: 0.5,  a: 0, d: 0, theta_pi: 0.0}
+    - {alpha_pi:  0.0,  a: 0, d: 0.005, theta_pi: 0.0}
 
   eef_to_tool:
     - [0, 0, -1, 0]

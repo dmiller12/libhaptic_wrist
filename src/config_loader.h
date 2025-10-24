@@ -22,9 +22,8 @@ struct convert<haptic_wrist::DHParameter> {
         p.alpha_pi = node["alpha_pi"].as<double>();
         p.a = node["a"].as<double>();
         p.d = node["d"].as<double>();
-        if (node["theta_pi"]) { // Safely decode optional value
-            p.theta_pi = node["theta_pi"].as<double>();
-        }
+        // theta_pi is optional in legacy configs; default to zero when omitted
+        p.theta_pi = node["theta_pi"] ? node["theta_pi"].as<double>() : 0.0;
         return true;
     }
 };
