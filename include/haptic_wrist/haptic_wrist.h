@@ -80,25 +80,25 @@ class HapticWrist {
 
     /**
      * @brief Returns the home position.
-     * @return Home position [rad]: [Z1, Y2, Z3]
+     * @return Home position [rad] for the four wrist joints.
      */
     jp_type getHome() const;
 
     /**
      * @brief Returns the current joint positions.
-     * @return Current joint positions [rad]: [Z1, Y2, Z3]
+     * @return Current joint positions [rad] for the four wrist joints.
      */
     jp_type getPosition();
 
     /**
      * @brief Returns the current joint velocities.
-     * @return Current joint velocities [rad/s]: [Z1_dot, Y2_dot, Z3_dot]
+     * @return Current joint velocities [rad/s] for the four wrist joints.
      */
     jv_type getVelocity();
 
     /**
      * @brief Returns the last commanded joint torques.
-     * @return Current joint torques [N⋅m]: [T_Z1, T_Y2, T_Z3]
+     * @return Current joint torques [N⋅m] for the four wrist joints.
      */
     jt_type getTorque();
 

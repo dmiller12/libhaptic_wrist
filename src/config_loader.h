@@ -9,7 +9,7 @@ namespace YAML {
 template <>
 struct convert<MoteusConfig> {
     static bool decode(const Node& node, MoteusConfig& c) {
-        c.kd = node["kd"].as<Eigen::Vector3d>();
+        c.kd = node["kd"].as<Eigen::Matrix<double, haptic_wrist::kWristDofs, 1>>();
         if (node["transport_args"]) {
             c.transport_args = node["transport_args"].as<std::vector<std::string>>();
         }
@@ -22,7 +22,8 @@ struct convert<haptic_wrist::DHParameter> {
         p.alpha_pi = node["alpha_pi"].as<double>();
         p.a = node["a"].as<double>();
         p.d = node["d"].as<double>();
-        if (node["theta_pi"]) { // Safely decode optional value
+        p.theta_pi = 0.0;
+        if (node["theta_pi"]) {
             p.theta_pi = node["theta_pi"].as<double>();
         }
         return true;
@@ -32,8 +33,8 @@ struct convert<haptic_wrist::DHParameter> {
 template <>
 struct convert<JointPositionControllerConfig> {
     static bool decode(const Node& node, JointPositionControllerConfig& c) {
-        c.kp = node["kp"].as<Eigen::Vector3d>();
-        c.kd = node["kd"].as<Eigen::Vector3d>();
+        c.kp = node["kp"].as<Eigen::Matrix<double, haptic_wrist::kWristDofs, 1>>();
+        c.kd = node["kd"].as<Eigen::Matrix<double, haptic_wrist::kWristDofs, 1>>();
         return true;
     }
 };
@@ -53,8 +54,9 @@ struct convert<HapticWristConfig> {
         config.moteus = node["moteus"].as<MoteusConfig>();
         config.dh_parameters = node["kinematics"]["dh"].as<std::vector<haptic_wrist::DHParameter>>();
         config.eef_to_tool = node["kinematics"]["eef_to_tool"].as<Eigen::Matrix4d>();
-        config.j2mp = node["j2mp"].as<Eigen::Matrix3d>();
-        config.home_position = node["home"].as<Eigen::Vector3d>();
+        config.j2mp =
+            node["j2mp"].as<Eigen::Matrix<double, haptic_wrist::kWristDofs, haptic_wrist::kWristDofs>>();
+        config.home_position = node["home"].as<Eigen::Matrix<double, haptic_wrist::kWristDofs, 1>>();
         config.joint_position_controller = node["joint_position_controller"].as<JointPositionControllerConfig>();
         config.orientation_controller = node["orientation_controller"].as<OrientationControllerConfig>();
         return true;
@@ -106,7 +108,8 @@ HapticWristConfig load_config(const std::string& config_dir) {
 
         boost::filesystem::path gravity_config_path = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
         YAML::Node gravity_yaml = YAML::LoadFile(gravity_config_path.string());
-        config.gravity_mus = gravity_yaml["mus"].as<Eigen::Matrix3d>();
+        config.gravity_mus =
+            gravity_yaml["mus"].as<Eigen::Matrix<double, haptic_wrist::kWristDofs, 3>>();
 
         return config;
     } catch (const YAML::Exception& e) {

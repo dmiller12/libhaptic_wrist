@@ -88,8 +88,8 @@ class HapticWristImpl {
     Eigen::Matrix4d base_to_wrist_ = Eigen::Matrix4d::Identity();
 
     // Coordinate transformation matrices
-    Eigen::Matrix3d jtmp_matrix_; // Joint to motor
-    Eigen::Matrix3d mtjp_matrix_; // Motor to joint
+    Eigen::Matrix<double, kWristDofs, kWristDofs> jtmp_matrix_; // Joint to motor
+    Eigen::Matrix<double, kWristDofs, kWristDofs> mtjp_matrix_; // Motor to joint
 
     // Threading and synchronization
     std::atomic<bool> running_{false};

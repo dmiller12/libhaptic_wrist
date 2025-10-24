@@ -10,7 +10,7 @@ struct DHParameter {
     double alpha_pi;
     double a;
     double d;
-    double theta_pi;
+    double theta_pi = 0.0;
 };
 
 struct Kin {
@@ -29,8 +29,9 @@ class Kinematics {
      * @param base_to_wrist An optional transformation from the wrist base to the world frame.
      * @return An array of kinematic transformations for each link.
      */
-    std::array<Kin, 4> eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist);
-    std::array<Kin, 4> eval(const haptic_wrist::jp_type& pos);
+    std::array<Kin, haptic_wrist::kWristDofs + 1> eval(haptic_wrist::jp_type pos,
+                                                       const Eigen::Matrix4d& base_to_wrist);
+    std::array<Kin, haptic_wrist::kWristDofs + 1> eval(const haptic_wrist::jp_type& pos);
 
     /**
      * @brief Computes the angular part of the geometric Jacobian.
@@ -39,7 +40,7 @@ class Kinematics {
      * @param pos The current joint positions.
      * @return The 3x3 angular Jacobian matrix.
      */
-    Eigen::Matrix<double, 3, 3> jacobian_omega(const haptic_wrist::jp_type& pos);
+    Eigen::Matrix<double, 3, haptic_wrist::kWristDofs> jacobian_omega(const haptic_wrist::jp_type& pos);
 
 
   private:

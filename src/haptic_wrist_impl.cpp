@@ -4,6 +4,8 @@
 #include "yaml-cpp/yaml.h"
 #include <boost/filesystem.hpp>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include "trajectory.h"
 #include "config_loader.h"
 
@@ -12,9 +14,9 @@ using namespace mjbots;
 namespace haptic_wrist {
 
 HapticWristImpl::HapticWristImpl()
-    : handle_theta_(Eigen::Vector3d::Zero())
-    , handle_dtheta_(Eigen::Vector3d::Zero())
-    , handle_torque_(Eigen::Vector3d::Zero())
+    : handle_theta_(jp_type::Zero())
+    , handle_dtheta_(jv_type::Zero())
+    , handle_torque_(jt_type::Zero())
     , handle_orientation_(Eigen::Quaterniond::Identity())
     , orientation_des_(Eigen::Quaterniond::Identity())
     , control_period_(1.0 / control_rate_) {
@@ -63,7 +65,8 @@ HapticWristImpl::HapticWristImpl()
     controllers_ = {
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 1; return opts; }()),
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 2; return opts; }()),
-        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }())
+        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }()),
+        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 4; return opts; }())
     };
 
     // Set moteus params and initialize motors to a stopped state
@@ -192,7 +195,7 @@ bool HapticWristImpl::entryPoint() {
         // --- Control Law Calculation ---
         ControlMode current_mode = control_mode_.load();
         if (current_mode == ControlMode::POSITION) {
-            Eigen::Vector3d local_desired_position;
+            jp_type local_desired_position;
             {
                 boost::lock_guard<boost::mutex> lock(set_mutex_);
                 local_desired_position = position_des_;
@@ -211,7 +214,7 @@ bool HapticWristImpl::entryPoint() {
             }
 
             // 1. Calculate the Jacobian
-            Eigen::Matrix<double, 3, 3> J_omega = kinematics_.jacobian_omega(current_pos);
+            auto J_omega = kinematics_.jacobian_omega(current_pos);
             
             // 2. Calculate tool angular velocity in the base frame
             cv_type tool_vel_base_frame = J_omega * current_vel;
@@ -227,14 +230,14 @@ bool HapticWristImpl::entryPoint() {
 
             // Define a simplified, diagonal joint-space inertia matrix M.
             // These values are weights representing the relative inertia of each joint.
-            // Since you noted joint 3 is "lighter", we give it a smaller inertia value.
+            // Since you noted joint 3 is "lighter", we give it a smaller inertia value and match the new joint 4.
             // These values are tunable parameters for your specific hardware.
-            Eigen::Matrix3d M;
-            M << 1.0, 0.0, 0.0,
-                 0.0, 0.6, 0.0,
-                 0.0, 0.0, 0.1; // m3 is smaller than m1 and m2
+            Eigen::Matrix<double, kWristDofs, kWristDofs> M = Eigen::Matrix<double, kWristDofs, kWristDofs>::Identity();
+            M(1, 1) = 0.6;
+            M(2, 2) = 0.1;
+            M(3, 3) = 0.1;
 
-            Eigen::Matrix3d M_inv = M.inverse(); // For a diagonal matrix, this is just 1/m_ii
+            Eigen::Matrix<double, kWristDofs, kWristDofs> M_inv = M.inverse(); // For a diagonal matrix, this is just 1/m_ii
 
             // Calculate the operational space inertia matrix, Lambda = (J * M^-1 * J^T)^-1
             Eigen::Matrix3d JM_invJT = J_omega * M_inv * J_omega.transpose();
@@ -259,7 +262,7 @@ bool HapticWristImpl::entryPoint() {
                 boost::lock_guard<boost::mutex> lock(set_mutex_);
                 local_wrist_to_base = base_to_wrist_;
             }
-            std::array<Kin, 4> kin = kinematics_.eval(current_pos, local_wrist_to_base);
+            auto kin = kinematics_.eval(current_pos, local_wrist_to_base);
             total_joint_torques += gravity_compensator_.eval(kin);
         }
         
@@ -315,8 +318,9 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     auto maybe_servo1 = FindServo(receive_frames_, 1);
     auto maybe_servo2 = FindServo(receive_frames_, 2);
     auto maybe_servo3 = FindServo(receive_frames_, 3);
+    auto maybe_servo4 = FindServo(receive_frames_, 4);
 
-    if (!maybe_servo1 || !maybe_servo2 || !maybe_servo3) {
+    if (!maybe_servo1 || !maybe_servo2 || !maybe_servo3 || !maybe_servo4) {
         missed_replies_++;
         if (missed_replies_ > 5) {
             std::cerr << "ERROR: Servos not responding. Halting." << std::endl;
@@ -330,10 +334,13 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     const auto& v1 = *maybe_servo1;
     const auto& v2 = *maybe_servo2;
     const auto& v3 = *maybe_servo3;
+    const auto& v4 = *maybe_servo4;
 
-    if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault) {
-        std::cerr << "ERROR: Servo fault detected. " 
-                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << std::endl;
+    if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault ||
+        v4.mode == moteus::Mode::kFault) {
+        std::cerr << "ERROR: Servo fault detected. "
+                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << " S4:" << v4.fault
+                  << std::endl;
         return true; // Return true for error
     }
 
@@ -341,16 +348,19 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     motor_theta(0) = v1.position * radiansPerRotation;
     motor_theta(1) = v2.position * radiansPerRotation;
     motor_theta(2) = v3.position * radiansPerRotation;
+    motor_theta(3) = v4.position * radiansPerRotation;
 
     mv_type motor_dtheta;
     motor_dtheta(0) = v1.velocity * radiansPerRotation;
     motor_dtheta(1) = v2.velocity * radiansPerRotation;
     motor_dtheta(2) = v3.velocity * radiansPerRotation;
+    motor_dtheta(3) = v4.velocity * radiansPerRotation;
 
     mt_type motor_torque;
     motor_torque(0) = v1.torque;
     motor_torque(1) = v2.torque;
     motor_torque(2) = v3.torque;
+    motor_torque(3) = v4.torque;
     
     // Lock and update the shared state variables
     {
@@ -360,8 +370,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         handle_torque_ = compute_torque(motor_torque);
 
         // Update orientation from new joint positions
-        std::array<Kin, 4> kin = kinematics_.eval(handle_theta_);
-        Eigen::Matrix3d rotation_matrix = kin[3].to_world_frame.block<3, 3>(0, 0);
+        auto kin = kinematics_.eval(handle_theta_);
+        Eigen::Matrix3d rotation_matrix = kin.back().to_world_frame.block<3, 3>(0, 0);
         handle_orientation_ = Eigen::Quaterniond(rotation_matrix);
         handle_orientation_.normalize();
     }

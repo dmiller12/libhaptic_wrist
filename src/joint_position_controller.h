@@ -17,17 +17,17 @@ class JointPositionController {
      * @param kp Proportional gain on orientation error.
      * @param kd Derivative gain on angular velocity (for damping).
      */
-    JointPositionController(Eigen::Vector3d kp, Eigen::Vector3d kd, double dt)
+    JointPositionController(const jp_type& kp, const jp_type& kd, double dt)
         : kp_(kp)
         , kd_(kd)
         , dt_(dt)
-        , prevError_(Eigen::Vector3d::Zero()) {
+        , prevError_(jp_type::Zero()) {
     }
 
     /**
      * @brief Sets the controller gains.
      */
-    void setGains(Eigen::Vector3d kp, Eigen::Vector3d kd) {
+    void setGains(const jp_type& kp, const jp_type& kd) {
         kp_ = kp;
         kd_ = kd;
     }
@@ -39,8 +39,8 @@ class JointPositionController {
      * @return The calculated joint torque.
      */
     jt_type compute_torque(const jp_type& position_ref, const jp_type& position_fbk) {
-        Eigen::Vector3d error = position_ref - position_fbk;
-        Eigen::Vector3d derivative = (error - prevError_) / dt_;
+        jp_type error = position_ref - position_fbk;
+        jp_type derivative = (error - prevError_) / dt_;
         prevError_ = error;
 
         jt_type j_torque = kp_.cwiseProduct(error) + kd_.cwiseProduct(derivative);
@@ -48,10 +48,10 @@ class JointPositionController {
     }
 
   private:
-    Eigen::Vector3d kp_; // Proportional gain
-    Eigen::Vector3d kd_; // Derivative gain
-    double dt_;          // time between control cycles
-    Eigen::Vector3d prevError_;
+    jp_type kp_; // Proportional gain
+    jp_type kd_; // Derivative gain
+    double dt_;  // time between control cycles
+    jp_type prevError_;
 };
 
 } // namespace haptic_wrist

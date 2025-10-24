@@ -5,6 +5,7 @@
 #include "yaml-cpp/yaml.h"
 #include <barrett/units.h>
 #include <fstream>
+#include <stdexcept>
 #include <thread>
 
 #include <barrett/standard_main_function.h>
@@ -87,7 +88,15 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<jp_type> wam_poses;
     for (size_t i = 0; i < yaml_config["gravitycal"].size(); i++) {
         auto pose_node = yaml_config["gravitycal"][i];
-        poses.push_back({pose_node[4].as<double>(), pose_node[5].as<double>(), pose_node[6].as<double>()});
+        if (pose_node.size() < 4 + haptic_wrist::kWristDofs) {
+            throw std::runtime_error("gravitycal entry does not contain enough joint values for wrist");
+        }
+
+        haptic_wrist::jp_type wrist_pose = haptic_wrist::jp_type::Zero();
+        for (size_t j = 0; j < haptic_wrist::kWristDofs; ++j) {
+            wrist_pose(j) = pose_node[4 + j].as<double>();
+        }
+        poses.push_back(wrist_pose);
         jp_type wamPose;
         wamPose[0] = pose_node[0].as<double>();
         wamPose[1] = pose_node[1].as<double>();
@@ -124,8 +133,8 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         hw.moveTo(poses[i]);
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        Eigen::Matrix<double, NUM_POINTS, 3> jp;
-        Eigen::Matrix<double, NUM_POINTS, 3> jt;
+        Eigen::Matrix<double, NUM_POINTS, haptic_wrist::kWristDofs> jp;
+        Eigen::Matrix<double, NUM_POINTS, haptic_wrist::kWristDofs> jt;
 
         for (int n = 0; n < NUM_POINTS; n++) {
             jp.row(n) = hw.getPosition();

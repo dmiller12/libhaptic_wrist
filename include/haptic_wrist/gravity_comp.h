@@ -10,27 +10,27 @@ namespace haptic_wrist {
 class GravityComp {
   public:
     GravityComp()
-        : mus_(Eigen::Matrix3d::Zero()) {};
+        : mus_(Eigen::Matrix<double, kWristDofs, 3>::Zero()) {};
 
-    GravityComp(const Eigen::Matrix3d& mus);
+    explicit GravityComp(const Eigen::Matrix<double, kWristDofs, 3>& mus);
 
     /**
      * @brief Computes the gravity compensation torques.
      * @param kin The kinematic chain transformations.
-     * @return The 3x1 vector of joint torques to counteract gravity.
+     * @return The joint torques to counteract gravity.
      */
-    jt_type eval(const std::array<Kin, 4>& kin);
+    jt_type eval(const std::array<Kin, kWristDofs + 1>& kin);
 
     /**
      * @brief Helper function to compute the gravity vector for each link.
      * @param kin The kinematic chain transformations.
-     * @return An array containing the gravity vector for each of the 3 links.
+     * @return An array containing the gravity vector for each joint.
      */
-    static std::array<Eigen::Vector3d, 3> computeGravity(const std::array<Kin, 4>& kin);
+    static std::array<Eigen::Vector3d, kWristDofs> computeGravity(const std::array<Kin, kWristDofs + 1>& kin);
 
   private:
     // Matrix of coefficients for the gravity model (link masses and center of mass)
-    Eigen::Matrix3d mus_;
+    Eigen::Matrix<double, kWristDofs, 3> mus_;
 };
 
 } // namespace haptic_wrist

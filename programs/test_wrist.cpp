@@ -18,10 +18,10 @@ Eigen::Quaterniond get_home_orientation(const haptic_wrist::HapticWrist& hw) {
     haptic_wrist::Kinematics kinematics = hw.getKinematics();
     
     // Evaluate kinematics at the zero position. Use the haptic_wrist namespace for Kin.
-    std::array<haptic_wrist::Kin, 4> kin_at_home = kinematics.eval({0.0, 0.0, 0.0});
-    
+    auto kin_at_home = kinematics.eval(haptic_wrist::jp_type::Zero());
+
     // The home orientation is the rotation matrix of the final link
-    Eigen::Matrix3d home_rotation = kin_at_home[3].to_world_frame.block<3, 3>(0, 0);
+    Eigen::Matrix3d home_rotation = kin_at_home[haptic_wrist::kWristDofs].to_world_frame.block<3, 3>(0, 0);
     return Eigen::Quaterniond(home_rotation);
 }
 
@@ -93,7 +93,8 @@ int main() {
             std::cout << "  > Reached Position [rad]: "
                       << "J1: " << final_positions[0] << ", "
                       << "J2: " << final_positions[1] << ", "
-                      << "J3: " << final_positions[2] << std::endl;
+                      << "J3: " << final_positions[2] << ", "
+                      << "J4: " << final_positions[3] << std::endl;
 
             std::this_thread::sleep_for(std::chrono::seconds(2));
         }
