@@ -10,31 +10,49 @@ namespace {
 
 constexpr std::size_t kNumJoints = haptic_wrist::kWristDofs;
 
+constexpr double kDegToRad = M_PI / 180.0;
+
 void printHelp(bool usingDegrees) {
-    std::cout << "Enter " << kNumJoints
-              << " joint angles in " << (usingDegrees ? "degrees" : "radians")
-              << " separated by spaces (e.g. \"0 -90 10 0\").\n"
-                 "Type 'home' to move to the configured home position, or 'q' to quit."
-              << std::endl;
+    std::cout << "Commands:\n"
+              << "  <joint> <angle>  - Set a single joint (1-" << kNumJoints << ") to the angle in "
+              << (usingDegrees ? "degrees" : "radians") << ". Example: \"2 -45\"\n"
+              << "  home             - Move to the configured home pose\n"
+              << "  print            - Print current joint positions\n"
+              << "  help             - Show this message\n"
+              << "  q/quit/exit      - Stop the program" << std::endl;
 }
 
-bool parseJointTargets(const std::string& line, bool inputInDegrees, haptic_wrist::jp_type& out) {
-    constexpr double kDegToRad = M_PI / 180.0;
+bool parseJointTargetCommand(const std::string& line, bool inputInDegrees, std::size_t& jointIdx, double& angleRad) {
     std::istringstream iss(line);
-    std::vector<double> values;
-    double value;
-    while (iss >> value) {
-        values.push_back(value);
-    }
-
-    if (values.size() != kNumJoints) {
-        std::cout << "Expected " << kNumJoints << " values but received " << values.size() << "." << std::endl;
+    std::string jointToken;
+    if (!(iss >> jointToken)) {
         return false;
     }
 
-    for (std::size_t i = 0; i < kNumJoints; ++i) {
-        out[i] = inputInDegrees ? values[i] * kDegToRad : values[i];
+    // Accept "j1" or "1"
+    if (jointToken.size() > 1 && (jointToken[0] == 'j' || jointToken[0] == 'J')) {
+        jointToken = jointToken.substr(1);
     }
+
+    try {
+        int parsed = std::stoi(jointToken);
+        if (parsed < 1 || parsed > static_cast<int>(kNumJoints)) {
+            std::cout << "Joint index must be between 1 and " << kNumJoints << "." << std::endl;
+            return false;
+        }
+        jointIdx = static_cast<std::size_t>(parsed - 1);
+    } catch (const std::exception&) {
+        std::cout << "Could not parse joint index from \"" << jointToken << "\"." << std::endl;
+        return false;
+    }
+
+    double angleInput;
+    if (!(iss >> angleInput)) {
+        std::cout << "Please provide an angle after the joint index." << std::endl;
+        return false;
+    }
+
+    angleRad = inputInDegrees ? angleInput * kDegToRad : angleInput;
     return true;
 }
 
@@ -85,17 +103,25 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        haptic_wrist::jp_type target = haptic_wrist::jp_type::Zero();
-        if (!parseJointTargets(line, inputInDegrees, target)) {
+        if (line == "print") {
+            auto current = hw.getPosition();
+            std::cout << "Current joints (rad): " << current.transpose() << std::endl;
+            continue;
+        }
+
+        std::size_t jointIdx = 0;
+        double angleRad = 0.0;
+        if (!parseJointTargetCommand(line, inputInDegrees, jointIdx, angleRad)) {
             std::cout << "Try again or type 'help'." << std::endl;
             continue;
         }
 
-        std::cout << "Moving to: ";
-        for (std::size_t i = 0; i < kNumJoints; ++i) {
-            std::cout << std::fixed << std::setprecision(4) << target[i] << (i + 1 == kNumJoints ? "" : ", ");
-        }
-        std::cout << std::endl;
+        haptic_wrist::jp_type target = hw.getPosition();
+        target[jointIdx] = angleRad;
+
+        std::cout << "Moving joint " << (jointIdx + 1) << " to "
+                  << (inputInDegrees ? angleRad / kDegToRad : angleRad) << (inputInDegrees ? " deg" : " rad")
+                  << std::endl;
 
         hw.moveTo(target);
         hw.hold(true); // keep stiffness once motion completes
