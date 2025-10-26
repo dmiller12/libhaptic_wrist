@@ -51,6 +51,7 @@ class HapticWristImpl {
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
+    mp_type getMotorPositions();
     const Kinematics& getKinematics() const;
     Eigen::Quaterniond getOrientation();
 
@@ -81,6 +82,7 @@ class HapticWristImpl {
     jp_type handle_theta_;
     jv_type handle_dtheta_;
     jt_type handle_torque_;
+    mp_type motor_theta_;
     Eigen::Quaterniond handle_orientation_;
     
     // Configuration and settings

@@ -344,11 +344,10 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         return true; // Return true for error
     }
 
-    mp_type motor_theta;
-    motor_theta(0) = v1.position * radiansPerRotation;
-    motor_theta(1) = v2.position * radiansPerRotation;
-    motor_theta(2) = v3.position * radiansPerRotation;
-    motor_theta(3) = v4.position * radiansPerRotation;
+    motor_theta_(0) = v1.position * radiansPerRotation;
+    motor_theta_(1) = v2.position * radiansPerRotation;
+    motor_theta_(2) = v3.position * radiansPerRotation;
+    motor_theta_(3) = v4.position * radiansPerRotation;
 
     mv_type motor_dtheta;
     motor_dtheta(0) = v1.velocity * radiansPerRotation;
@@ -365,7 +364,7 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     // Lock and update the shared state variables
     {
         boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
-        handle_theta_ = compute_pos(motor_theta);
+        handle_theta_ = compute_pos(motor_theta_);
         handle_dtheta_ = compute_vel(motor_dtheta);
         handle_torque_ = compute_torque(motor_torque);
 
@@ -405,6 +404,12 @@ Eigen::Quaterniond HapticWristImpl::getOrientation() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_orientation_;
 }
+
+mp_type HapticWristImpl::getMotorPositions() {
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+    return motor_theta_;
+}
+
 jp_type HapticWristImpl::compute_pos(const mp_type& motor_theta) {
     return mtjp_matrix_ * motor_theta;
 }
