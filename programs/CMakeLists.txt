@@ -27,3 +27,10 @@ target_link_libraries(simple_commands
     haptic_wrist
     pthread
 )
+
+add_executable(joint_move joint_move.cpp)
+target_include_directories(joint_move PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(joint_move 
+    haptic_wrist
+    pthread
+)
