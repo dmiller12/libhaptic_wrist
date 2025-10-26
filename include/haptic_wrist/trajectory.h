@@ -1,8 +1,13 @@
 #pragma once
 
-#include "interpolate.h"
-#include "trapezoidal_velocity_profile.h"
+#include "haptic_wrist/interpolate.h"
+#include "haptic_wrist/trapezoidal_velocity_profile.h"
 
+namespace haptic_wrist {
+
+/**
+ * @brief Timing and interpolation helper for point-to-point motions.
+ */
 template <typename T>
 class Trajectory {
 public:
@@ -15,9 +20,7 @@ public:
      */
     Trajectory(const T& start, const T& end, double max_vel, double max_acc)
         : interpolator_(start, end)
-        , profile_(max_vel, max_acc, 0.0, interpolator_.getTotalChange())
-    {
-    }
+        , profile_(max_vel, max_acc, 0.0, interpolator_.getTotalChange()) {}
 
     /**
      * @brief Gets the interpolated setpoint at a specific absolute time.
@@ -51,3 +54,5 @@ private:
     Interpolate<T> interpolator_;
     TrapezoidalVelocityProfile profile_;
 };
+
+} // namespace haptic_wrist
