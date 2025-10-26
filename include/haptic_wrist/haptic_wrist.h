@@ -103,6 +103,11 @@ class HapticWrist {
     jt_type getTorque();
 
     /**
+     * @brief Returns the raw motor positions (in radians at the motor shaft).
+     */
+    mp_type getMotorPositions();
+
+    /**
      * @brief Returns the kinematics
      * @return Kinematics
      */

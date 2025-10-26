@@ -27,6 +27,10 @@ Eigen::Quaterniond HapticWrist::getOrientation() {
     return impl->getOrientation();
 }
 
+mp_type HapticWrist::getMotorPositions() {
+    return impl->getMotorPositions();
+}
+
 void HapticWrist::setWristToBase(const Eigen::Matrix4d& transform) {
     impl->setWristToBase(transform);
 }

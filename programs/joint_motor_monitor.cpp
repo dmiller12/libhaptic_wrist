@@ -33,9 +33,11 @@ Eigen::Matrix<double, haptic_wrist::kWristDofs, haptic_wrist::kWristDofs> loadJ2
 }
 
 void printState(const haptic_wrist::jp_type& joints,
-                const Eigen::Matrix<double, haptic_wrist::kWristDofs, 1>& motors) {
-    std::cout << "Joints (rad): " << joints.transpose() << std::endl;
-    std::cout << "Motors (units): " << motors.transpose() << std::endl;
+                const Eigen::Matrix<double, haptic_wrist::kWristDofs, 1>& motors_from_matrix,
+                const haptic_wrist::mp_type& motor_actual) {
+    std::cout << "Joints (rad):  " << joints.transpose() << std::endl;
+    std::cout << "Motor est (rad): " << motors_from_matrix.transpose() << std::endl;
+    std::cout << "Motor act (rad): " << motor_actual.transpose() << std::endl;
     std::cout << "-----------------------------" << std::endl;
 }
 
@@ -56,8 +58,9 @@ int main(int argc, char** argv) {
 
         while (true) {
             haptic_wrist::jp_type joints = hw.getPosition();
-            Eigen::Matrix<double, haptic_wrist::kWristDofs, 1> motors = j2mp * joints;
-            printState(joints, motors);
+            Eigen::Matrix<double, haptic_wrist::kWristDofs, 1> motors_est = j2mp * joints;
+            haptic_wrist::mp_type motors_actual = hw.getMotorPositions();
+            printState(joints, motors_est, motors_actual);
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
 
