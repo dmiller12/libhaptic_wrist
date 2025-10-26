@@ -34,3 +34,11 @@ target_link_libraries(joint_move
     haptic_wrist
     pthread
 )
+
+add_executable(joint_motor_monitor joint_motor_monitor.cpp)
+target_include_directories(joint_motor_monitor PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(joint_motor_monitor
+    haptic_wrist
+    yaml-cpp
+    pthread
+)
