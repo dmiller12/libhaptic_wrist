@@ -2,7 +2,7 @@
 
 
 moteus:
-  kd: [0.08, 0.08, 0.01, 0.005]
+  kd: [0.1, 0.1, 0.1, 0.1]
   # comment out if using fdcanusb
   # transport_args: ["--socketcan-iface", "can2"]
 
@@ -21,16 +21,16 @@ kinematics:
 
 j2mp:
   - [5, 0, 0, 0]
-  - [0, 34.3, 0, 0]
-  - [0, 34.3, -12.3, 0]
-  - [0, 0, 0, 7.6]
+  - [0, -34.3, 0, 0]
+  - [0, -34.3, 12.3, 0]
+  - [0, 0, 0, 1.0]
 
 
 home: [0.0, 0.0, 0.0, 0.0]
 
 joint_position_controller:
-  kp: [3.2, 1.8, 0.4, 0.3]
-  kd: [0.08, 0.02, 0.005, 0.005]
+  kp: [5.0, 0.0, 0.0, 0.0]
+  kd: [0.1, 0.0, 0.0, 0.0]
 
 orientation_controller:
   kp: 1.0
