@@ -7,10 +7,10 @@
 namespace haptic_wrist {
 
 struct DHParameter {
-    double alpha_pi;
-    double a;
-    double d;
-    double theta_pi;
+    double alpha_pi = 0.0;
+    double a = 0.0;
+    double d = 0.0;
+    double theta_pi = 0.0;
 };
 
 struct Kin {

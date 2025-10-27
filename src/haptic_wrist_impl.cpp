@@ -56,7 +56,10 @@ HapticWristImpl::HapticWristImpl()
     qf.voltage = moteus::kIgnore;
     qf.temperature = moteus::kIgnore;
 
+    auto args = moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
+
     transport_ = moteus::Controller::MakeSingletonTransport({});
+
     controllers_ = {
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 1; return opts; }()),
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 2; return opts; }()),
@@ -276,7 +279,7 @@ bool HapticWristImpl::entryPoint() {
         if (time_to_sleep > std::chrono::seconds::zero()) {
             std::this_thread::sleep_for(time_to_sleep);
         } else {
-            // std::cerr << "Warning: Loop overrun detected! "
+            // std::cerr << "Warning: Loop overrun detected! Consider lowering the control rate "
             //           << "Desired period: "
             //           << std::chrono::duration_cast<std::chrono::microseconds>(control_period_).count() << " us, "
             //           << "Actual time: "

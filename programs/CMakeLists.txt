@@ -13,17 +13,16 @@ if (BUILD_BARRETT)
   target_link_libraries(demo_grav_comp haptic_wrist ${BARRETT_LIBRARIES}) 
 endif()
 
-add_executable(test_wrist test_wrist.cpp)
-target_include_directories(test_wrist PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(test_wrist 
-    haptic_wrist
-    pthread
-    yaml-cpp
-)
-
 add_executable(simple_commands simple_commands.cpp)
 target_include_directories(simple_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(simple_commands 
+    haptic_wrist
+    pthread
+)
+
+add_executable(joint_move joint_move.cpp)
+target_include_directories(joint_move PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(joint_move 
     haptic_wrist
     pthread
 )

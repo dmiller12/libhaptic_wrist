@@ -14,7 +14,7 @@ std::array<Kin, 4> Kinematics::eval(haptic_wrist::jp_type pos, const Eigen::Matr
     Eigen::Matrix4d cumulative_transform = world_to_base_ * base_to_wrist;
 
     for (size_t i = 0; i < dh_params_.size(); i++) {
-        double total_theta = pos(i);
+        double total_theta = pos(i) + dh_params_[i].theta_pi * M_PI;
         Eigen::Matrix4d link_transform = computeTransform(dh_params_[i], total_theta);
         
         cumulative_transform = cumulative_transform * link_transform;

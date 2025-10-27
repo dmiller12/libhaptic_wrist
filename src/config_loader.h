@@ -10,6 +10,9 @@ template <>
 struct convert<MoteusConfig> {
     static bool decode(const Node& node, MoteusConfig& c) {
         c.kd = node["kd"].as<Eigen::Vector3d>();
+        if (node["transport_args"]) {
+            c.transport_args = node["transport_args"].as<std::vector<std::string>>();
+        }
         return true;
     }
 };
@@ -19,9 +22,8 @@ struct convert<haptic_wrist::DHParameter> {
         p.alpha_pi = node["alpha_pi"].as<double>();
         p.a = node["a"].as<double>();
         p.d = node["d"].as<double>();
-        if (node["theta_pi"]) { // Safely decode optional value
-            p.theta_pi = node["theta_pi"].as<double>();
-        }
+        // theta_pi is optional in legacy configs; default to zero when omitted
+        p.theta_pi = node["theta_pi"] ? node["theta_pi"].as<double>() : 0.0;
         return true;
     }
 };

@@ -15,6 +15,8 @@ FetchContent_Declare(
   GIT_TAG        ee4f6ac9c6391523876836fcf6f276411b7f3670
 )
 FetchContent_MakeAvailable(moteus)
+add_compile_definitions(CANFD_FDF)
+add_compile_definitions(MJBOTS_MOTEUS_ENABLE_SOCKETCAN)
 
 FetchContent_Declare(
   yaml-cpp
