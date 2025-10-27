@@ -221,20 +221,16 @@ bool HapticWristImpl::entryPoint() {
 
             // 3. Get Cartesian acceleration command from the orientation controller.
             // Note: We are re-interpreting the output of the PD controller as a desired
-            //       acceleration, which is the standard formulation for operational space control.
+            // acceleration, which is the standard formulation for operational space control.
             ct_type cartesian_accel_des = orientation_controller_->compute_torque(
                 desired_orientation, current_orientation, tool_vel_base_frame);
 
             // 4. Map Cartesian acceleration to joint torques using Operational Space Control.
-            // This is the key change to improve stability by accounting for joint inertia.
-
-            // Define a simplified, diagonal joint-space inertia matrix M.
             // These values are weights representing the relative inertia of each joint.
-            // Since you noted joint 3 is "lighter", we give it a smaller inertia value and match the new joint 4.
-            // These values are tunable parameters for your specific hardware.
             Eigen::Matrix<double, kWristDofs, kWristDofs> M = Eigen::Matrix<double, kWristDofs, kWristDofs>::Identity();
-            M(1, 1) = 0.6;
-            M(2, 2) = 0.1;
+            M(0, 0) = 1.0;
+            M(1, 1) = 0.5;
+            M(2, 2) = 0.5;
             M(3, 3) = 0.1;
 
             Eigen::Matrix<double, kWristDofs, kWristDofs> M_inv = M.inverse(); // For a diagonal matrix, this is just 1/m_ii
