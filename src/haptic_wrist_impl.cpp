@@ -223,12 +223,6 @@ bool HapticWristImpl::entryPoint() {
                 desired_orientation, current_orientation, tool_vel_base_frame);
 
             // 4. Map Cartesian acceleration to joint torques using Operational Space Control.
-            // This is the key change to improve stability by accounting for joint inertia.
-
-            // Define a simplified, diagonal joint-space inertia matrix M.
-            // These values are weights representing the relative inertia of each joint.
-            // Since you noted joint 3 is "lighter", we give it a smaller inertia value.
-            // These values are tunable parameters for your specific hardware.
             Eigen::Matrix3d M;
             M << 1.0, 0.0, 0.0,
                  0.0, 0.6, 0.0,
