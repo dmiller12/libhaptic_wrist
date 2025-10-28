@@ -33,12 +33,12 @@ j2mp:
 home: [0.0, 0.0, 0.0, 0.0]
 
 joint_position_controller:
-  kp: [10.0, 0.1, 0.8, 0.5]
+  kp: [5.0, 0.1, 0.6, 0.5]
   kd: [0.1, 0.005, 0.005, 0.005]
 
 orientation_controller:
-  kp: 3.0
-  kd: 0.004
+  kp: 0.05
+  kd: 0.008
 
 gravitycal:
   # base of wrist aligned with world frame
