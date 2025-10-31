@@ -2,7 +2,7 @@
 
 
 moteus:
-  kd: [0.1, 0.1, 0.1, 0.1]
+  kd: [0.00, 0.00, 0.00, 0.00]
   # comment out if using fdcanusb
   # transport_args: ["--socketcan-iface", "can2"]
 
@@ -24,21 +24,21 @@ kinematics:
 # [Alignment] Angle error (deg): 0.564165 Axis: [-0.140789 0.0342537  0.989447]
 
 j2mp:
-  - [5, 0, 0, 0]
-  - [0, 34.3, 0, 0]
-  - [0, 34.3, -12.3, 0]
-  - [0, 0, 0, 1.0]
+  - [-5, 0, 0, 0]
+  - [0, -34.3, 0, 0]
+  - [0, -34.3, 12.3, 0]
+  - [0, 0, 0, -7.0]
 
 
 home: [0.0, 0.0, 0.0, 0.0]
 
 joint_position_controller:
-  kp: [5.0, 0.1, 0.6, 0.5]
+  kp: [5.0, 0.1, 0.1, 0.1]
   kd: [0.1, 0.005, 0.005, 0.005]
 
 orientation_controller:
-  kp: 0.05
-  kd: 0.008
+  kp: 0.002
+  kd: 0.00008
 
 gravitycal:
   # base of wrist aligned with world frame

@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     Eigen::Quaterniond desQuat(1.0, 0.0, 0.0, 0.0);
     //
     sleep(1);
-    hw.moveTo(hw.getHome());
+    hw.jointMoveTo(hw.getHome());
 
     while (true) {
         std::cout << "position\n" << hw.getPosition() << std::endl;

@@ -116,7 +116,7 @@ class HapticWrist {
     /**
      * @brief Moves to a desired joint position.
      */
-    void moveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
+    void jointMoveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
 
     /**
      * @brief Moves to a desired joint position.

@@ -55,8 +55,8 @@ const Kinematics& HapticWrist::getKinematics() const {
     return impl->getKinematics();
 }
 
-void HapticWrist::moveTo(const jp_type& desiredPos, double vel, double accel) {
-    return impl->moveTo(desiredPos, vel, accel);
+void HapticWrist::jointMoveTo(const jp_type& desiredPos, double vel, double accel) {
+    return impl->jointMoveTo(desiredPos, vel, accel);
 }
 
 void HapticWrist::moveTo(const Eigen::Quaterniond& desiredOrientation, double vel, double accel) {

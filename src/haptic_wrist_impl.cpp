@@ -128,7 +128,7 @@ void HapticWristImpl::gravityCompensate(bool compensate) {
     gravity_compensate_.store(compensate);
 }
 
-void HapticWristImpl::moveTo(const jp_type& desiredPos, double vel, double accel) {
+void HapticWristImpl::jointMoveTo(const jp_type& desiredPos, double vel, double accel) {
     jp_type startPos = getPosition();
     Trajectory<jp_type> trajectory(startPos, desiredPos, vel, accel); 
 
@@ -229,8 +229,8 @@ bool HapticWristImpl::entryPoint() {
             // These values are weights representing the relative inertia of each joint.
             Eigen::Matrix<double, kWristDofs, kWristDofs> M = Eigen::Matrix<double, kWristDofs, kWristDofs>::Identity();
             M(0, 0) = 1.0;
-            M(1, 1) = 0.5;
-            M(2, 2) = 0.5;
+            M(1, 1) = 1.0;
+            M(2, 2) = 1.0;
             M(3, 3) = 0.1;
 
             Eigen::Matrix<double, kWristDofs, kWristDofs> M_inv = M.inverse(); // For a diagonal matrix, this is just 1/m_ii
@@ -278,12 +278,12 @@ bool HapticWristImpl::entryPoint() {
         if (time_to_sleep > std::chrono::seconds::zero()) {
             std::this_thread::sleep_for(time_to_sleep);
         } else {
-            // std::cerr << "Warning: Loop overrun detected! Consider lowering the control rate "
-            //           << "Desired period: "
-            //           << std::chrono::duration_cast<std::chrono::microseconds>(control_period_).count() << " us, "
-            //           << "Actual time: "
-            //           << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us"
-            //           << std::endl;
+            std::cerr << "Warning: Loop overrun detected! Consider lowering the control rate "
+                      << "Desired period: "
+                      << std::chrono::duration_cast<std::chrono::microseconds>(control_period_).count() << " us, "
+                      << "Actual time: "
+                      << std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count() << " us"
+                      << std::endl;
         }
     }
 
