@@ -9,8 +9,8 @@ int main(int argc, char** argv) {
     hw.gravityCompensate(false);
     hw.run();
 
-    // sleep(1);
-    // hw.hold(true);
+    sleep(1);
+    hw.hold(true);
     //
     // // haptic_wrist::jp_type desiredPos;
     // // desiredPos << M_PI / 2.0, M_PI / 2.0, M_PI / 2.0;
@@ -18,10 +18,11 @@ int main(int argc, char** argv) {
     //
     // Eigen::Vector3d axis = Eigen::Vector3d::UnitY();
     //
-    Eigen::Quaterniond desQuat(1.0, 0.0, 0.0, 0.0);
+    // Eigen::Quaterniond desQuat(1.0, 0.0, 0.0, 0.0);
     //
     sleep(1);
-    hw.moveTo(hw.getHome());
+    Eigen::Quaterniond des = hw.getOrientation();
+    hw.setTarget(des);
 
     while (true) {
         std::cout << "position\n" << hw.getPosition() << std::endl;
