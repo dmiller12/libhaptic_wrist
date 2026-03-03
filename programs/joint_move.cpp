@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
 
         if (line == "home") {
             std::cout << "Moving to home position..." << std::endl;
-            hw.moveTo(hw.getHome());
+            hw.jointMoveTo(hw.getHome());
             hw.hold(true);
             continue;
         }
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
                   << (inputInDegrees ? angleRad / kDegToRad : angleRad) << (inputInDegrees ? " deg" : " rad")
                   << std::endl;
 
-        hw.moveTo(target);
+        hw.jointMoveTo(target);
         hw.hold(true); // keep stiffness once motion completes
     }
 

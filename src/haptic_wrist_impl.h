@@ -41,7 +41,7 @@ class HapticWristImpl {
     void setOrientationGains(double kp, double kd);
     void hold(bool hold);
     void gravityCompensate(bool compensate = true);
-    void moveTo(const jp_type& desiredPos, double vel, double accel);
+    void jointMoveTo(const jp_type& desiredPos, double vel, double accel);
     void moveTo(const Eigen::Quaterniond& desiredOrientation, double vel, double accel);
     void setWristToBase(const Eigen::Matrix4d& transform);
 

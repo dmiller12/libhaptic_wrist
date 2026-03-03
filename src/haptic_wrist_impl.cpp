@@ -125,7 +125,7 @@ void HapticWristImpl::gravityCompensate(bool compensate) {
     gravity_compensate_.store(compensate);
 }
 
-void HapticWristImpl::moveTo(const jp_type& desiredPos, double vel, double accel) {
+void HapticWristImpl::jointMoveTo(const jp_type& desiredPos, double vel, double accel) {
     jp_type startPos = getPosition();
     Trajectory<jp_type> trajectory(startPos, desiredPos, vel, accel); 
 
