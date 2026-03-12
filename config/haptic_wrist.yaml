@@ -4,7 +4,7 @@
 moteus:
   kd: [0.08, 0.08, 0.08]
   # comment out if using fdcanusb
-  # transport_args: ["--socketcan-iface", "can2"]
+  transport_args: ["--socketcan-iface", "can2"]
 
 kinematics:
   dh:
