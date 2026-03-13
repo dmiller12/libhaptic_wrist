@@ -7,8 +7,8 @@
 
 
 struct JointPositionControllerConfig {
-    Eigen::Vector3d kp;
-    Eigen::Vector3d kd;
+    Eigen::Vector2d kp;
+    Eigen::Vector2d kd;
 };
 
 struct OrientationControllerConfig {
@@ -17,7 +17,7 @@ struct OrientationControllerConfig {
 };
 
 struct MoteusConfig {
-    Eigen::Vector3d kd;
+    Eigen::Vector2d kd;
     std::vector<std::string> transport_args;
 };
 
@@ -25,9 +25,9 @@ struct HapticWristConfig {
     MoteusConfig moteus;
     std::vector<haptic_wrist::DHParameter> dh_parameters;
     Eigen::Matrix4d eef_to_tool;
-    Eigen::Matrix3d j2mp;
-    Eigen::Vector3d home_position;
+    Eigen::Matrix2d j2mp;
+    Eigen::Vector2d home_position;
     JointPositionControllerConfig joint_position_controller;
     OrientationControllerConfig orientation_controller;
-    Eigen::Matrix3d gravity_mus;
+    Eigen::Matrix<double, 2, 3> gravity_mus;
 };

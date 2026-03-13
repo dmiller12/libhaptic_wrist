@@ -87,7 +87,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     std::vector<jp_type> wam_poses;
     for (size_t i = 0; i < yaml_config["gravitycal"].size(); i++) {
         auto pose_node = yaml_config["gravitycal"][i];
-        poses.push_back({pose_node[4].as<double>(), pose_node[5].as<double>(), pose_node[6].as<double>()});
+        poses.push_back({pose_node[4].as<double>(), pose_node[5].as<double>()});
         jp_type wamPose;
         wamPose[0] = pose_node[0].as<double>();
         wamPose[1] = pose_node[1].as<double>();
@@ -124,8 +124,8 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         hw.jointMoveTo(poses[i]);
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        Eigen::Matrix<double, NUM_POINTS, 3> jp;
-        Eigen::Matrix<double, NUM_POINTS, 3> jt;
+        Eigen::Matrix<double, NUM_POINTS, 2> jp;
+        Eigen::Matrix<double, NUM_POINTS, 2> jt;
 
         for (int n = 0; n < NUM_POINTS; n++) {
             jp.row(n) = hw.getPosition();
@@ -147,7 +147,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         nLL(3 * i + 1, 3 + 2 * i + 1) = -1.0;
     }
 
-    size_t n = 3;
+    size_t n = 2;
     std::vector<Eigen::VectorXd> Y(n);
     std::vector<Eigen::MatrixXd> GT(n);
     for (size_t i = 0; i < n; i++) {
@@ -161,7 +161,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         // need gravity vector for each joint
         auto kin = kinematics.eval(positions[i], base_to_world[i]);
         auto grav = haptic_wrist::GravityComp::computeGravity(kin);
-        for (size_t j = 0; j < 3; j++) {
+        for (size_t j = 0; j < n; j++) {
             // grav skew matrix
             GT[j].block<3, 3>(3 * i, 0) = skewSymmetric(grav[j]);
             // GT: -R*L,
@@ -180,11 +180,11 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         }
     }
 
-    std::array<Eigen::VectorXd, 3> P;
+    std::array<Eigen::VectorXd, 2> P;
     Eigen::VectorXd b(3 * poses.size());
     b.setZero();
 
-    for (size_t i = 0; i < 3; i++) {
+    for (size_t i = 0; i < n; i++) {
         P[i].resize(3 + 2 * poses.size());
         P[i].setZero();
     }

@@ -2,13 +2,13 @@
 
 namespace haptic_wrist {
 
-GravityComp::GravityComp(const Eigen::Matrix3d& mus)
+GravityComp::GravityComp(const Eigen::Matrix<double, 2, 3>& mus)
     : mus_(mus) {
 }
 
-haptic_wrist::jt_type GravityComp::eval(const std::array<Kin, 4>& kin) {
+haptic_wrist::jt_type GravityComp::eval(const std::array<Kin, 3>& kin) {
 
-    std::array<Eigen::Vector3d, 3> grav = computeGravity(kin);
+    std::array<Eigen::Vector3d, 2> grav = computeGravity(kin);
 
     haptic_wrist::jt_type jt;
     Eigen::Vector3d prev_torque = Eigen::Vector3d::Zero();
@@ -23,10 +23,10 @@ haptic_wrist::jt_type GravityComp::eval(const std::array<Kin, 4>& kin) {
     return jt;
 }
 
-std::array<Eigen::Vector3d, 3> GravityComp::computeGravity(const std::array<Kin, 4>& kin) {
+std::array<Eigen::Vector3d, 2> GravityComp::computeGravity(const std::array<Kin, 3>& kin) {
     Eigen::Vector3d gravityBase;
     gravityBase << 0, 0, -9.81;
-    std::array<Eigen::Vector3d, 3> grav;
+    std::array<Eigen::Vector3d, 2> grav;
     for (size_t i = 0; i < kin.size() - 1; i++) {
 
         Eigen::Matrix3d R = kin[i].to_world_frame.block<3, 3>(0, 0);
