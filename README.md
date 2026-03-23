@@ -26,7 +26,12 @@ target_link_libraries(your_target haptic_wrist)
 See `programs/demo_grav_comp.cpp` and `tool_frame_cb.h` for integrating with the wam.
 ## Notes
 
-The joint numbers match the wam wrist, that is J1, J2, J3 correspond with J5, J6, J7 on the wam wrist, respectively.
+On `MagnumOpus`, active joints map as:
+- Wrist `ID1` -> WAM `J5`
+- Wrist `ID2` -> WAM `J6`
+
+The passive DoF is read from the MA600 on AUX2 of controller `ID1`.
+Control is joint-to-joint only (orientation target commands are disabled).
 
 Make sure wam toolplate dh_params are correct. d should be 0.0
 
@@ -70,9 +75,9 @@ moteus:
 ### Common Moteus Commands
 Zero the moteus
 ```bash
-python3 -m moteus.moteus_tool --target 1,2,3 --zero-offset
+python3 -m moteus.moteus_tool --target 1,2 --zero-offset
 ```
 Open tview:
 ```bash
-python3 -m moteus_gui.tview --target 1,2,3
+python3 -m moteus_gui.tview --target 1,2
 ```

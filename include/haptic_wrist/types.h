@@ -8,6 +8,10 @@ using jp_type = Eigen::Vector2d; // Joint Position
 using jv_type = Eigen::Vector2d; // Joint Velocity
 using jt_type = Eigen::Vector2d; // Joint Torque
 
+// Full kinematic chain state (passive, then active joints)
+using kq_type = Eigen::Vector3d; // Kinematic joint position
+using kv_type = Eigen::Vector3d; // Kinematic joint velocity
+
 // Motor-space types
 using mp_type = Eigen::Vector2d; // Motor Position
 using mv_type = Eigen::Vector2d; // Motor Velocity

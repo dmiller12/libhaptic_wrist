@@ -17,7 +17,7 @@ class GravityComp {
     /**
      * @brief Computes the gravity compensation torques.
      * @param kin The kinematic chain transformations.
-     * @return The 3x1 vector of joint torques to counteract gravity.
+     * @return The 2x1 vector of active joint torques to counteract gravity.
      */
     jt_type eval(const std::array<Kin, 3>& kin);
 

@@ -4,7 +4,11 @@
 #include "utils.h"
 #include "yaml-cpp/yaml.h"
 #include <barrett/units.h>
+#include <algorithm>
+#include <cmath>
 #include <fstream>
+#include <limits>
+#include <string>
 #include <thread>
 
 #include <barrett/standard_main_function.h>
@@ -49,6 +53,34 @@ bool confirmContinue() {
     return input.empty() || input == "y" || input == "yes";
 }
 
+bool waitForPoseReady(size_t pose_index, bool has_passive_target, double passive_target_rad, double passive_current_rad) {
+    std::cout << "\nPose " << (pose_index + 1) << " reached." << std::endl;
+    if (has_passive_target) {
+        std::cout << "Passive target [rad]: " << passive_target_rad
+                  << " (current: " << passive_current_rad << ")" << std::endl;
+    }
+    std::cout << "Lock passive joint, then press Enter to sample ('q' to quit): ";
+
+    std::string input;
+    std::getline(std::cin, input);
+    std::transform(input.begin(), input.end(), input.begin(), ::tolower);
+    return !(input == "q" || input == "quit" || input == "exit");
+}
+
+double wrapToPi(double angle) {
+    while (angle > M_PI) {
+        angle -= 2.0 * M_PI;
+    }
+    while (angle < -M_PI) {
+        angle += 2.0 * M_PI;
+    }
+    return angle;
+}
+
+double angularDistance(double a, double b) {
+    return std::abs(wrapToPi(a - b));
+}
+
 template <size_t DOF>
 int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::systems::Wam<DOF> &wam) {
 
@@ -84,10 +116,25 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     YAML::Node yaml_config = YAML::LoadFile(config_file.string());
 
     std::vector<haptic_wrist::jp_type> poses;
+    std::vector<double> passive_targets;
+    bool any_passive_targets = false;
     std::vector<jp_type> wam_poses;
     for (size_t i = 0; i < yaml_config["gravitycal"].size(); i++) {
         auto pose_node = yaml_config["gravitycal"][i];
-        poses.push_back({pose_node[4].as<double>(), pose_node[5].as<double>()});
+        if (!pose_node.IsSequence() || (pose_node.size() != 6 && pose_node.size() != 7)) {
+            throw std::runtime_error("Each gravitycal pose must have 6 values (WAM4 + active2) or 7 values "
+                                     "(WAM4 + passive + active2).");
+        }
+
+        if (pose_node.size() == 7) {
+            any_passive_targets = true;
+            passive_targets.push_back(pose_node[4].as<double>());
+            poses.push_back({pose_node[5].as<double>(), pose_node[6].as<double>()});
+        } else {
+            passive_targets.push_back(std::numeric_limits<double>::quiet_NaN());
+            poses.push_back({pose_node[4].as<double>(), pose_node[5].as<double>()});
+        }
+
         jp_type wamPose;
         wamPose[0] = pose_node[0].as<double>();
         wamPose[1] = pose_node[1].as<double>();
@@ -96,7 +143,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         wam_poses.push_back(wamPose);
     }
 
-    std::vector<haptic_wrist::jp_type> positions;
+    std::vector<haptic_wrist::kq_type> positions;
     std::vector<haptic_wrist::jt_type> torques;
     std::vector<Eigen::Matrix4d> base_to_world;
 
@@ -124,16 +171,53 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         hw.jointMoveTo(poses[i]);
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
+        const bool pose_has_passive_target = std::isfinite(passive_targets[i]);
+        if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], hw.getPassivePosition())) {
+            std::cout << "Calibration canceled by user." << std::endl;
+            hw.jointMoveTo(hw.getHome());
+            wam.moveHome();
+            hw.stop();
+            return 1;
+        }
+
+        if (any_passive_targets && std::isfinite(passive_targets[i])) {
+            constexpr double passive_tol = 5.0 * M_PI / 180.0;
+            constexpr int max_wait_ms = 12000;
+            auto wait_start = std::chrono::steady_clock::now();
+            bool in_tolerance = false;
+
+            while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - wait_start)
+                       .count() < max_wait_ms) {
+                const double passive_now = hw.getPassivePosition();
+                if (angularDistance(passive_now, passive_targets[i]) <= passive_tol) {
+                    in_tolerance = true;
+                    break;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+
+            if (!in_tolerance) {
+                std::cout << "Warning: passive joint not within tolerance at pose " << i
+                          << ". target=" << passive_targets[i] << " measured=" << hw.getPassivePosition()
+                          << " tol=" << passive_tol << std::endl;
+            }
+        }
+
         Eigen::Matrix<double, NUM_POINTS, 2> jp;
         Eigen::Matrix<double, NUM_POINTS, 2> jt;
+        Eigen::Matrix<double, NUM_POINTS, 1> passive;
 
         for (int n = 0; n < NUM_POINTS; n++) {
             jp.row(n) = hw.getPosition();
             jt.row(n) = hw.getTorque();
+            passive(n, 0) = hw.getPassivePosition();
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
 
-        positions.push_back(jp.colwise().mean());
+        haptic_wrist::kq_type pos_mean;
+        const haptic_wrist::jp_type active_mean = jp.colwise().mean();
+        pos_mean << passive.col(0).mean(), active_mean(0), active_mean(1);
+        positions.push_back(pos_mean);
         torques.push_back(jt.colwise().mean());
     }
     hw.jointMoveTo(hw.getHome());
@@ -159,7 +243,8 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
     for (size_t i = 0; i < poses.size(); i++) {
         // need gravity vector for each joint
-        auto kin = kinematics.eval(positions[i], base_to_world[i]);
+        auto kin_full = kinematics.eval(positions[i], base_to_world[i]);
+        std::array<haptic_wrist::Kin, 3> kin = {kin_full[1], kin_full[2], kin_full[3]};
         auto grav = haptic_wrist::GravityComp::computeGravity(kin);
         for (size_t j = 0; j < n; j++) {
             // grav skew matrix

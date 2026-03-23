@@ -47,6 +47,14 @@ jt_type HapticWrist::getTorque() {
     return impl->getTorque();
 }
 
+double HapticWrist::getPassivePosition() {
+    return impl->getPassivePosition();
+}
+
+double HapticWrist::getPassiveVelocity() {
+    return impl->getPassiveVelocity();
+}
+
 const Kinematics& HapticWrist::getKinematics() const {
     return impl->getKinematics();
 }

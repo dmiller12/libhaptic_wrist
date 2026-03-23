@@ -10,12 +10,12 @@
 #include "haptic_wrist/gravity_comp.h"
 #include "haptic_wrist/kinematics.h"
 #include "haptic_wrist/types.h"
-#include "orientation_controller.h"
 #include "joint_position_controller.h"
 #include <atomic>
 #include <boost/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
+#include <cstdint>
 #include <memory>
 #include <thread>
 
@@ -25,7 +25,6 @@ namespace haptic_wrist {
 enum class ControlMode {
     NONE,        // No active control, compliant.
     POSITION,    // Actively controls joint position
-    ORIENTATION, // Actively controls end-effector orientation.
 };
 
 class HapticWristImpl {
@@ -51,6 +50,8 @@ class HapticWristImpl {
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
+    double getPassivePosition();
+    double getPassiveVelocity();
     const Kinematics& getKinematics() const;
     Eigen::Quaterniond getOrientation();
 
@@ -68,11 +69,9 @@ class HapticWristImpl {
     const double control_rate_ = 250.0;
     const std::chrono::duration<double> control_period_;
     std::atomic<ControlMode> control_mode_{ControlMode::NONE};
-    Eigen::Quaterniond orientation_des_;
     jp_type position_des_;
     
     // Controllers and Kinematics
-    std::unique_ptr<OrientationController> orientation_controller_;
     std::unique_ptr<JointPositionController> joint_position_controller_;
     Kinematics kinematics_;
     GravityComp gravity_compensator_;
@@ -81,6 +80,8 @@ class HapticWristImpl {
     jp_type handle_theta_;
     jv_type handle_dtheta_;
     jt_type handle_torque_;
+    kq_type handle_kin_theta_;
+    kv_type handle_kin_dtheta_;
     Eigen::Quaterniond handle_orientation_;
     
     // Configuration and settings
@@ -107,6 +108,7 @@ class HapticWristImpl {
     jv_type compute_vel(const mv_type& motor_dtheta);
     jt_type compute_torque(const mt_type& motor_torque);
     boost::optional<mjbots::moteus::Query::Result> FindServo(const std::vector<mjbots::moteus::CanFdFrame>& frames, int id);
+    static double FindExtraRegister(const mjbots::moteus::Query::Result& result, int16_t register_number);
 
     static constexpr double radiansPerRotation = 2.0 * M_PI;
 };

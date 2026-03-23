@@ -13,7 +13,7 @@ class HapticWristImpl;
 
 /**
  * @class HapticWrist
- * Control the serial direct drive Z-Y-Z haptic wrist using orientation control.
+ * Control the serial direct drive wrist in joint-to-joint mode.
  * Use run() to start the control loop in a separate thread.
  *
  */
@@ -33,9 +33,9 @@ class HapticWrist {
     void stop();
 
     /**
-     * @brief Provide a desired orientation for the end-effector.
-     * The controller will generate torques to achieve this orientation.
+     * @brief Orientation targets are disabled in joint-to-joint mode.
      * @param orientation A quaternion representing the desired orientation in the base frame.
+     * @throws std::logic_error Always.
      */
     void setTarget(const Eigen::Quaterniond& orientation);
 
@@ -47,9 +47,8 @@ class HapticWrist {
     void setTarget(const jp_type& position);
 
     /**
-     * @brief Sets the gains for the orientation controller.
-     * @param kp Proportional gain on orientation error.
-     * @param kd Derivative gain for damping.
+     * @brief Orientation control is disabled in joint-to-joint mode.
+     * @throws std::logic_error Always.
      */
     void setOrientationGains(double kp, double kd);
 
@@ -72,35 +71,47 @@ class HapticWrist {
     void setWristToBase(const Eigen::Matrix4d& transform);
 
     /**
-     * @brief Commands the wrist to hold its current orientation or release control.
-     * @param hold If true, captures the current orientation and holds it.
+     * @brief Commands the wrist to hold its current joint position or release control.
+     * @param hold If true, captures the current active joint positions and holds them.
      * If false, stops applying active control torques (motors will be compliant).
      */
     void hold(bool hold);
 
     /**
      * @brief Returns the home position.
-     * @return Home position [rad]: [Z1, Y2, Z3]
+     * @return Home position [rad] for active joints: [ID1, ID2]
      */
     jp_type getHome() const;
 
     /**
      * @brief Returns the current joint positions.
-     * @return Current joint positions [rad]: [Z1, Y2, Z3]
+     * @return Current joint positions [rad] for active joints: [ID1, ID2]
      */
     jp_type getPosition();
 
     /**
      * @brief Returns the current joint velocities.
-     * @return Current joint velocities [rad/s]: [Z1_dot, Y2_dot, Z3_dot]
+     * @return Current joint velocities [rad/s] for active joints: [ID1_dot, ID2_dot]
      */
     jv_type getVelocity();
 
     /**
      * @brief Returns the last commanded joint torques.
-     * @return Current joint torques [N⋅m]: [T_Z1, T_Y2, T_Z3]
+     * @return Current joint torques [N⋅m] for active joints: [T_ID1, T_ID2]
      */
     jt_type getTorque();
+
+    /**
+     * @brief Returns the passive joint position from AUX2 encoder feedback.
+     * @return Passive joint position [rad].
+     */
+    double getPassivePosition();
+
+    /**
+     * @brief Returns the passive joint velocity from AUX2 encoder feedback.
+     * @return Passive joint velocity [rad/s].
+     */
+    double getPassiveVelocity();
 
     /**
      * @brief Returns the kinematics
@@ -114,7 +125,8 @@ class HapticWrist {
     void jointMoveTo(const jp_type& pos, double vel = 0.5, double accel = 0.5);
 
     /**
-     * @brief Moves to a desired joint position.
+     * @brief Orientation moves are disabled in joint-to-joint mode.
+     * @throws std::logic_error Always.
      */
     void moveTo(const Eigen::Quaterniond& orientation, double vel = 0.5, double accel = 0.5);
 

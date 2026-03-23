@@ -1,8 +1,9 @@
 #pragma once
 
 #include "haptic_wrist/types.h"
-#include <vector>
+#include <array>
 #include <Eigen/Dense>
+#include <vector>
 
 namespace haptic_wrist {
 
@@ -29,17 +30,21 @@ class Kinematics {
      * @param base_to_wrist An optional transformation from the wrist base to the world frame.
      * @return An array of kinematic transformations for each link.
      */
-    std::array<Kin, 3> eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist);
-    std::array<Kin, 3> eval(const haptic_wrist::jp_type& pos);
+    std::array<Kin, 4> eval(const haptic_wrist::kq_type& pos, const Eigen::Matrix4d& base_to_wrist);
+    std::array<Kin, 4> eval(const haptic_wrist::kq_type& pos);
+
+    // Convenience overloads for active joints only. Passive angle is assumed to be zero.
+    std::array<Kin, 4> eval(const haptic_wrist::jp_type& active_pos, const Eigen::Matrix4d& base_to_wrist);
+    std::array<Kin, 4> eval(const haptic_wrist::jp_type& active_pos);
 
     /**
      * @brief Computes the angular part of the geometric Jacobian.
      * This Jacobian maps joint velocities to the end-effector's angular velocity in the base frame.
      * omega_base = J_omega * q_dot
      * @param pos The current joint positions.
-     * @return The 3x2 angular Jacobian matrix.
+     * @return The 3x3 angular Jacobian matrix for [passive, id1, id2].
      */
-    Eigen::Matrix<double, 3, 2> jacobian_omega(const haptic_wrist::jp_type& pos);
+    Eigen::Matrix<double, 3, 3> jacobian_omega(const haptic_wrist::kq_type& pos);
 
 
   private:

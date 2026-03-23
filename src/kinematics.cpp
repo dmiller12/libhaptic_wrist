@@ -1,5 +1,6 @@
 #include "haptic_wrist/kinematics.h"
 #include <cmath>
+#include <stdexcept>
 
 namespace haptic_wrist {
 
@@ -9,47 +10,71 @@ Kinematics::Kinematics(std::vector<DHParameter> dh, Eigen::Matrix4d eef_to_tool,
     , eef_to_tool_(eef_to_tool) {
 }
 
-std::array<Kin, 3> Kinematics::eval(haptic_wrist::jp_type pos, const Eigen::Matrix4d& base_to_wrist) {
-    std::array<Kin, 3> kin;
+std::array<Kin, 4> Kinematics::eval(const haptic_wrist::kq_type& pos, const Eigen::Matrix4d& base_to_wrist) {
+    std::array<Kin, 4> kin;
     Eigen::Matrix4d cumulative_transform = world_to_base_ * base_to_wrist;
 
-    for (size_t i = 0; i < dh_params_.size(); i++) {
-        double total_theta = pos(i) + dh_params_[i].theta_pi * M_PI;
-        Eigen::Matrix4d link_transform = computeTransform(dh_params_[i], total_theta);
-        
-        cumulative_transform = cumulative_transform * link_transform;
-        kin[i] = Kin{link_transform, cumulative_transform};
+    if (dh_params_.size() == 2) {
+        // Magnum wrist default: implicit first (passive) revolute joint at the wrist base.
+        Eigen::Matrix4d passive_transform = computeTransform(DHParameter{}, pos(0));
+        cumulative_transform = cumulative_transform * passive_transform;
+        kin[0] = Kin{passive_transform, cumulative_transform};
+
+        for (size_t i = 0; i < dh_params_.size(); i++) {
+            const double total_theta = pos(i + 1) + dh_params_[i].theta_pi * M_PI;
+            const Eigen::Matrix4d link_transform = computeTransform(dh_params_[i], total_theta);
+
+            cumulative_transform = cumulative_transform * link_transform;
+            kin[i + 1] = Kin{link_transform, cumulative_transform};
+        }
+    } else if (dh_params_.size() == 3) {
+        // Explicit 3-joint DH chain: [passive, id1, id2].
+        for (size_t i = 0; i < dh_params_.size(); i++) {
+            const double total_theta = pos(i) + dh_params_[i].theta_pi * M_PI;
+            const Eigen::Matrix4d link_transform = computeTransform(dh_params_[i], total_theta);
+
+            cumulative_transform = cumulative_transform * link_transform;
+            kin[i] = Kin{link_transform, cumulative_transform};
+        }
+    } else {
+        throw std::runtime_error("Kinematics expects 2 (implicit passive) or 3 DH rows.");
     }
-    
+
     cumulative_transform = cumulative_transform * eef_to_tool_;
-    kin[2] = Kin{eef_to_tool_, cumulative_transform};
+    kin[3] = Kin{eef_to_tool_, cumulative_transform};
 
     return kin;
 }
 
-std::array<Kin, 3> Kinematics::eval(const haptic_wrist::jp_type& pos) {
+std::array<Kin, 4> Kinematics::eval(const haptic_wrist::kq_type& pos) {
     return eval(pos, Eigen::Matrix4d::Identity());
 }
 
-Eigen::Matrix<double, 3, 2> Kinematics::jacobian_omega(const haptic_wrist::jp_type& pos) {
-    Eigen::Matrix<double, 3, 2> J_omega;
+std::array<Kin, 4> Kinematics::eval(const haptic_wrist::jp_type& active_pos, const Eigen::Matrix4d& base_to_wrist) {
+    haptic_wrist::kq_type full_pos;
+    full_pos << 0.0, active_pos(0), active_pos(1);
+    return eval(full_pos, base_to_wrist);
+}
+
+std::array<Kin, 4> Kinematics::eval(const haptic_wrist::jp_type& active_pos) {
+    return eval(active_pos, Eigen::Matrix4d::Identity());
+}
+
+Eigen::Matrix<double, 3, 3> Kinematics::jacobian_omega(const haptic_wrist::kq_type& pos) {
+    Eigen::Matrix<double, 3, 3> J_omega;
 
     // The axis of rotation for a revolute joint 'i' is the z-axis of frame 'i-1',
-    // expressed in the base frame {0}. J_omega = [z_0, z_1, z_2]
-    
-    // Get all the forward kinematic transformations.
-    // kin[0].to_world_frame contains T_1^0
-    // kin[1].to_world_frame contains T_2^0
-    // etc.
-    // We assume the base frame is the world frame for the Jacobian calculation.
-    std::array<Kin, 3> kin = eval(pos, Eigen::Matrix4d::Identity());
+    // expressed in the base frame {0}. J_omega = [z_0, z_1, z_2].
+    const std::array<Kin, 4> kin = eval(pos, Eigen::Matrix4d::Identity());
 
-    // The axis of rotation for the first joint (joint 1) is the z-axis of the base frame (frame 0).
+    // Joint 0 (passive): z-axis of the base frame.
     J_omega.col(0) << 0, 0, 1;
 
-    // The axis of rotation for the second joint (joint 2) is the z-axis of frame 1,
-    // expressed in the base frame. This is the third column of the rotation matrix R_1^0.
-    J_omega.col(1) = kin[0].to_world_frame.block<3, 1>(0, 0).col(0, 2);
+    // Joint 1 (ID 1): z-axis of frame 0 transformed to base.
+    J_omega.col(1) = kin[0].to_world_frame.block<3, 3>(0, 0).col(2);
+
+    // Joint 2 (ID 2): z-axis of frame 1 transformed to base.
+    J_omega.col(2) = kin[1].to_world_frame.block<3, 3>(0, 0).col(2);
 
     return J_omega;
 }

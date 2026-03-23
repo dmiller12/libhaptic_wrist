@@ -1,6 +1,8 @@
-# Configuration for serial direct drive Z-Y-Z wrist
-
-# TODO: change these for 2 magnum wrist
+# Configuration for 2-DoF Magnum Opus wrist
+# Magnum Opus wrist mapping:
+#   - Controller ID 1 drives WAM joint 5
+#   - Controller ID 2 drives WAM joint 6
+#   - Passive DoF is read from the MA600 on AUX2 of controller ID 1
 
 moteus:
   kd: [0.08, 0.08]
@@ -10,6 +12,7 @@ moteus:
 kinematics:
   dh:
     - {alpha_pi: -0.5,  a: 0, d: 0.488, theta_pi: 0.5}
+    - {alpha_pi: -0.5,  a: 0, d: 0.488, theta_pi: 0.5}
     - {alpha_pi: 0.5,  a: 0, d: 0, theta_pi: -0.5}
 
   eef_to_tool:
@@ -18,16 +21,9 @@ kinematics:
     - [-1, 0, 0, 0]
     - [0, 0, 0, 1]
 
-  # eef_to_tool:
-  #   - [0, 1, 0, 0]
-  #   - [-1, 0, 0, 0]
-  #   - [0, 0, -1, 0]
-  #   - [0, 0, 0, 1]
-
-
 j2mp:
-  - [-6.42, 0]
-  - [0, 6.03]
+  - [10.278, 0]
+  - [0, 10.267]
 
 home: [0.0, 0.0]
 
@@ -35,12 +31,11 @@ joint_position_controller:
   kp: [0.5, 0.5]
   kd: [0.005, 0.005]
 
-orientation_controller:
-  kp: 0.05
-  kd: 0.008
-
 gravitycal:
-  # base of wrist aligned with world frame
+  # Pose format:
+  #   - 6 values: [wam1, wam2, wam3, wam4, id1, id2]
+  #   - 7 values: [wam1, wam2, wam3, wam4, passive, id1, id2]
+  # For 7-value poses, gravity_cal waits for passive angle to be near target before sampling.
   - [0, -1.5708, 0, 1.5708, 0, 0]
   - [0, -1.5708, 0, 1.5708, 0, -1.5708]
   - [0, -1.5708, 0, 1.5708, 0, -0.7854]
@@ -50,7 +45,6 @@ gravitycal:
   - [0, -1.5708, 0, 1.5708, 0, 1.5708]
   - [0, -1.5708, 0, 1.5708, 0, 1.5708]
   - [0, -1.5708, 0, 1.5708, 0, 1.5708]
-  # base of wrist rotated 90 degrees about Y world frame
   - [0, 0, 0, 1.5708, -1.5708, 1.5708]
   - [0, 0, 0, 1.5708, -0.7854, 1.5708]
   - [0, 0, 0, 1.5708, 0, 1.5708]
