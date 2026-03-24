@@ -40,8 +40,8 @@ struct convert<JointPositionControllerConfig> {
 template <>
 struct convert<OrientationControllerConfig> {
     static bool decode(const Node& node, OrientationControllerConfig& c) {
-        c.kp = node["kp"].as<double>();
-        c.kd = node["kd"].as<double>();
+        c.kp = node["kp"] ? node["kp"].as<double>() : 0.0;
+        c.kd = node["kd"] ? node["kd"].as<double>() : 0.0;
         return true;
     }
 };
@@ -55,7 +55,11 @@ struct convert<HapticWristConfig> {
         config.j2mp = node["j2mp"].as<Eigen::Matrix2d>();
         config.home_position = node["home"].as<Eigen::Vector2d>();
         config.joint_position_controller = node["joint_position_controller"].as<JointPositionControllerConfig>();
-        config.orientation_controller = node["orientation_controller"].as<OrientationControllerConfig>();
+        if (node["orientation_controller"]) {
+            config.orientation_controller = node["orientation_controller"].as<OrientationControllerConfig>();
+        } else {
+            config.orientation_controller = OrientationControllerConfig{};
+        }
         return true;
     }
 };

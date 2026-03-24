@@ -13,7 +13,8 @@ int main(int argc, char** argv) {
     hw.run();
 
     sleep(1);
-    hw.setTarget(hw.getPosition());
+    // Keep the wrist compliant in this monitor utility.
+    hw.hold(false);
 
     while (true) {
         std::cout << "active joints [ID1, ID2] rad: " << hw.getPosition().transpose() << std::endl;

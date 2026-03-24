@@ -54,9 +54,10 @@ HapticWristImpl::HapticWristImpl()
     auto& qf = options_common.query_format;
     qf.voltage = moteus::kIgnore;
     qf.temperature = moteus::kIgnore;
-    qf.extra[0].register_number = moteus::Register::kEncoder2Position;
+    // Passive DoF is read from motor_position.sources.1 on controller ID 1.
+    qf.extra[0].register_number = moteus::Register::kEncoder1Position;
     qf.extra[0].resolution = moteus::kFloat;
-    qf.extra[1].register_number = moteus::Register::kEncoder2Velocity;
+    qf.extra[1].register_number = moteus::Register::kEncoder1Velocity;
     qf.extra[1].resolution = moteus::kFloat;
     qf.extra[2].register_number = moteus::Register::kEncoderValidity;
     qf.extra[2].resolution = moteus::kInt8;
@@ -283,9 +284,9 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     motor_torque(0) = v1.torque;
     motor_torque(1) = v2.torque;
 
-    // Passive state from AUX2 encoder slot 2 on controller ID 1.
-    const double passive_pos_turns = FindExtraRegister(v1, moteus::Register::kEncoder2Position);
-    const double passive_vel_turns = FindExtraRegister(v1, moteus::Register::kEncoder2Velocity);
+    // Passive state from encoder slot 1 (motor_position.sources.1) on controller ID 1.
+    const double passive_pos_turns = FindExtraRegister(v1, moteus::Register::kEncoder1Position);
+    const double passive_vel_turns = FindExtraRegister(v1, moteus::Register::kEncoder1Velocity);
     const double encoder_validity = FindExtraRegister(v1, moteus::Register::kEncoderValidity);
 
     double passive_pos_rad = 0.0;
@@ -307,9 +308,9 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
 
     if (std::isfinite(encoder_validity)) {
         const int validity = static_cast<int>(std::llround(encoder_validity));
-        const bool encoder2_valid = (validity & (1 << 2)) != 0;
-        if (!encoder2_valid) {
-            // Keep last good passive reading if slot 2 is not currently valid.
+        const bool encoder1_valid = (validity & (1 << 1)) != 0;
+        if (!encoder1_valid) {
+            // Keep last good passive reading if slot 1 is not currently valid.
             passive_pos_rad = last_passive_pos_rad;
             passive_vel_rad_s = last_passive_vel_rad_s;
         }
