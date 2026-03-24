@@ -31,6 +31,8 @@ On `MagnumOpus`, active joints map as:
 - Wrist `ID2` -> WAM `J6`
 
 The passive DoF is read from the MA600 on AUX2 of controller `ID1`.
+Use `passive_encoder.offset_rad` and `passive_encoder.scale` in `haptic_wrist.yaml`
+to map raw MA600 radians into physical passive-joint radians.
 Control is joint-to-joint only (orientation target commands are disabled).
 
 Make sure wam toolplate dh_params are correct. d should be 0.0

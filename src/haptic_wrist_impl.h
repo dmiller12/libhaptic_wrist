@@ -87,6 +87,8 @@ class HapticWristImpl {
     // Configuration and settings
     std::atomic<bool> gravity_compensate_{false};
     Eigen::Matrix4d base_to_wrist_ = Eigen::Matrix4d::Identity();
+    double passive_offset_rad_ = 0.0;
+    double passive_scale_ = 1.0;
 
     // Coordinate transformation matrices
     Eigen::Matrix2d jtmp_matrix_; // Joint to motor

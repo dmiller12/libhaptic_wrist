@@ -9,6 +9,13 @@ moteus:
   # comment out if using fdcanusb
   # transport_args: ["--socketcan-iface", "can2"]
 
+passive_encoder:
+  # Calibrated from lock points:
+  # raw(0 deg)=2.5733, raw(+90)=1.14065, raw(-90)=4.01268
+  # theta_phys = wrap_to_pi((theta_raw - offset_rad) * scale)
+  offset_rad: 2.5733
+  scale: -1.0939
+
 kinematics:
   dh:
     - {alpha_pi: -0.5,  a: 0, d: 0.2064, theta_pi: -0.5}

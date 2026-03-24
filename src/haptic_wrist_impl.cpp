@@ -13,6 +13,20 @@ using namespace mjbots;
 
 namespace haptic_wrist {
 
+namespace {
+
+double WrapToPi(double angle) {
+    while (angle > M_PI) {
+        angle -= 2.0 * M_PI;
+    }
+    while (angle < -M_PI) {
+        angle += 2.0 * M_PI;
+    }
+    return angle;
+}
+
+} // namespace
+
 HapticWristImpl::HapticWristImpl()
     : handle_theta_(Eigen::Vector2d::Zero())
     , handle_dtheta_(Eigen::Vector2d::Zero())
@@ -31,6 +45,8 @@ HapticWristImpl::HapticWristImpl()
 
     home_ = config.home_position;
     handle_kin_theta_ << 0.0, home_(0), home_(1);
+    passive_offset_rad_ = config.passive_encoder.offset_rad;
+    passive_scale_ = config.passive_encoder.scale;
 
     kinematics_ = Kinematics(config.dh_parameters, config.eef_to_tool, Eigen::Matrix4d::Identity());
     gravity_compensator_ = GravityComp(config.gravity_mus);
@@ -299,11 +315,16 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     const double last_passive_pos_rad = passive_pos_rad;
     const double last_passive_vel_rad_s = passive_vel_rad_s;
 
+    bool have_new_passive_pos = false;
+    bool have_new_passive_vel = false;
+
     if (std::isfinite(passive_pos_turns)) {
         passive_pos_rad = passive_pos_turns * radiansPerRotation;
+        have_new_passive_pos = true;
     }
     if (std::isfinite(passive_vel_turns)) {
         passive_vel_rad_s = passive_vel_turns * radiansPerRotation;
+        have_new_passive_vel = true;
     }
 
     if (std::isfinite(encoder_validity)) {
@@ -313,7 +334,16 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
             // Keep last good passive reading if slot 1 is not currently valid.
             passive_pos_rad = last_passive_pos_rad;
             passive_vel_rad_s = last_passive_vel_rad_s;
+            have_new_passive_pos = false;
+            have_new_passive_vel = false;
         }
+    }
+
+    if (have_new_passive_pos) {
+        passive_pos_rad = WrapToPi((passive_pos_rad - passive_offset_rad_) * passive_scale_);
+    }
+    if (have_new_passive_vel) {
+        passive_vel_rad_s *= passive_scale_;
     }
 
     {

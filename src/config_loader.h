@@ -47,6 +47,15 @@ struct convert<OrientationControllerConfig> {
 };
 
 template <>
+struct convert<PassiveEncoderConfig> {
+    static bool decode(const Node& node, PassiveEncoderConfig& c) {
+        c.offset_rad = node["offset_rad"] ? node["offset_rad"].as<double>() : 0.0;
+        c.scale = node["scale"] ? node["scale"].as<double>() : 1.0;
+        return true;
+    }
+};
+
+template <>
 struct convert<HapticWristConfig> {
     static bool decode(const Node& node, HapticWristConfig& config) {
         config.moteus = node["moteus"].as<MoteusConfig>();
@@ -59,6 +68,11 @@ struct convert<HapticWristConfig> {
             config.orientation_controller = node["orientation_controller"].as<OrientationControllerConfig>();
         } else {
             config.orientation_controller = OrientationControllerConfig{};
+        }
+        if (node["passive_encoder"]) {
+            config.passive_encoder = node["passive_encoder"].as<PassiveEncoderConfig>();
+        } else {
+            config.passive_encoder = PassiveEncoderConfig{};
         }
         return true;
     }

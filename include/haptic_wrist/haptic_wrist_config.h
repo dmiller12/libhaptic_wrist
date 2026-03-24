@@ -21,6 +21,11 @@ struct MoteusConfig {
     std::vector<std::string> transport_args;
 };
 
+struct PassiveEncoderConfig {
+    double offset_rad = 0.0;
+    double scale = 1.0;
+};
+
 struct HapticWristConfig {
     MoteusConfig moteus;
     std::vector<haptic_wrist::DHParameter> dh_parameters;
@@ -29,5 +34,6 @@ struct HapticWristConfig {
     Eigen::Vector2d home_position;
     JointPositionControllerConfig joint_position_controller;
     OrientationControllerConfig orientation_controller;
+    PassiveEncoderConfig passive_encoder;
     Eigen::Matrix<double, 2, 3> gravity_mus;
 };
