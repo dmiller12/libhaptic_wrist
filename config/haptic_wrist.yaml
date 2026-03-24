@@ -7,18 +7,24 @@
 moteus:
   kd: [0.08, 0.08]
   # comment out if using fdcanusb
-  transport_args: ["--socketcan-iface", "can2"]
+  # transport_args: ["--socketcan-iface", "can2"]
 
 kinematics:
   dh:
-    - {alpha_pi: -0.5,  a: 0, d: 0.488, theta_pi: 0.5}
-    - {alpha_pi: -0.5,  a: 0, d: 0.488, theta_pi: 0.5}
-    - {alpha_pi: 0.5,  a: 0, d: 0, theta_pi: -0.5}
+    - {alpha_pi: -0.5,  a: 0, d: 0.2064, theta_pi: -0.5}
+    - {alpha_pi: 0.5,  a: 0, d: 0.168, theta_pi: 0.5}
+    - {alpha_pi: 0.0,  a: 0, d: 0, theta_pi: 0.0}
+
+  # eef_to_tool:
+  #   - [0, 0, 1, 0]
+  #   - [0, 1, 0, 0]
+  #   - [-1, 0, 0, 0]
+  #   - [0, 0, 0, 1]
 
   eef_to_tool:
-    - [0, 0, 1, 0]
+    - [1, 0, 0, 0]
     - [0, 1, 0, 0]
-    - [-1, 0, 0, 0]
+    - [0, 0, 1, 0]
     - [0, 0, 0, 1]
 
 j2mp:
