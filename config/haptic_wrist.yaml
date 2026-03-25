@@ -48,7 +48,8 @@ gravitycal:
   # Pose format:
   #   - 7 values: [wam1, wam2, wam3, wam4, passive, id1, id2]
   # For 7-value poses, gravity_cal waits for passive angle to be near target before sampling.
-  # If consecutive poses have the same passive value, it only pauses at the first pose in that block.
+  # With --pause-on-passive-transition, consecutive poses with the same passive value
+  # only pause at the first pose in that block.
   
   # Group 1: 5th joint = 0 rad
   - [0, 0, 0, 0, 0, 1.5708, 0]

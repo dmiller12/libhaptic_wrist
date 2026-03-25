@@ -19,6 +19,8 @@ void print_usage(char *program_name) {
     printf("Options\n");
     printf("  --enable-last : Include the last joint in calibration. Exlcuded by default since handle COM intersects "
            "axis of rotation\n");
+    printf("  --pause-on-passive-transition : Pause/confirm only when passive target changes between consecutive "
+           "poses (for 7-value gravitycal rows)\n");
     printf("  --help : Prints this help message\n");
 }
 
@@ -100,10 +102,13 @@ template <size_t DOF>
 int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::systems::Wam<DOF> &wam) {
 
     bool enable_last = false;
+    bool pause_on_passive_transition = false;
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--enable-last") {
             enable_last = true;
+        } else if (arg == "--pause-on-passive-transition") {
+            pause_on_passive_transition = true;
         } else if (arg == "--help") {
             print_usage(argv[0]);
             return 0;
@@ -186,7 +191,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
         const bool pose_has_passive_target = std::isfinite(passive_targets[i]);
         const bool pause_for_passive_transition =
-            !pose_has_passive_target || isPassiveStateTransition(i, passive_targets);
+            !pause_on_passive_transition || !pose_has_passive_target || isPassiveStateTransition(i, passive_targets);
 
         if (pause_for_passive_transition) {
             if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], hw.getPassivePosition())) {
@@ -221,8 +226,8 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
                 }
             }
         } else {
-            std::cout << "Pose " << (i + 1)
-                      << " uses same passive state as previous pose; sampling without additional pause." << std::endl;
+            std::cout << "Pose " << (i + 1) << " uses same passive state as previous pose; "
+                      << "sampling without additional pause (--pause-on-passive-transition)." << std::endl;
         }
 
         Eigen::Matrix<double, NUM_POINTS, 2> jp;
