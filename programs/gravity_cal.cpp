@@ -20,7 +20,8 @@ void print_usage(char *program_name) {
     printf("  --enable-last : Include the last joint in calibration. Exlcuded by default since handle COM intersects "
            "axis of rotation\n");
     printf("  --pause-on-passive-transition : Pause/confirm only when passive target changes between consecutive "
-           "poses (for 7-value gravitycal rows)\n");
+           "poses (default for 7-value gravitycal rows)\n");
+    printf("  --pause-every-pose : Pause/confirm at every pose\n");
     printf("  --help : Prints this help message\n");
 }
 
@@ -102,13 +103,15 @@ template <size_t DOF>
 int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::systems::Wam<DOF> &wam) {
 
     bool enable_last = false;
-    bool pause_on_passive_transition = false;
+    bool pause_on_passive_transition = true;
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--enable-last") {
             enable_last = true;
         } else if (arg == "--pause-on-passive-transition") {
             pause_on_passive_transition = true;
+        } else if (arg == "--pause-every-pose") {
+            pause_on_passive_transition = false;
         } else if (arg == "--help") {
             print_usage(argv[0]);
             return 0;
@@ -190,11 +193,16 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         const bool pose_has_passive_target = std::isfinite(passive_targets[i]);
+        const double passive_current = hw.getPassivePosition();
+        if (pose_has_passive_target) {
+            std::cout << "Required passive state for this pose [rad]: " << passive_targets[i]
+                      << " (current: " << passive_current << ")" << std::endl;
+        }
         const bool pause_for_passive_transition =
             !pause_on_passive_transition || !pose_has_passive_target || isPassiveStateTransition(i, passive_targets);
 
         if (pause_for_passive_transition) {
-            if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], hw.getPassivePosition())) {
+            if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], passive_current)) {
                 std::cout << "Calibration canceled by user." << std::endl;
                 hw.jointMoveTo(hw.getHome());
                 wam.moveHome();
@@ -204,7 +212,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
             if (pose_has_passive_target) {
                 constexpr double passive_tol = 5.0 * M_PI / 180.0;
-                constexpr int max_wait_ms = 12000;
+                constexpr int max_wait_ms = 3000;
                 auto wait_start = std::chrono::steady_clock::now();
                 bool in_tolerance = false;
 
@@ -227,7 +235,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
             }
         } else {
             std::cout << "Pose " << (i + 1) << " uses same passive state as previous pose; "
-                      << "sampling without additional pause (--pause-on-passive-transition)." << std::endl;
+                      << "sampling without additional pause (default transition-only mode)." << std::endl;
         }
 
         Eigen::Matrix<double, NUM_POINTS, 2> jp;
