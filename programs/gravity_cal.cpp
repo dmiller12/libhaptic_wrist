@@ -81,6 +81,21 @@ double angularDistance(double a, double b) {
     return std::abs(wrapToPi(a - b));
 }
 
+bool isPassiveStateTransition(size_t pose_index, const std::vector<double>& passive_targets) {
+    if (pose_index == 0) {
+        return true;
+    }
+
+    const double current = passive_targets[pose_index];
+    const double previous = passive_targets[pose_index - 1];
+    if (!std::isfinite(current) || !std::isfinite(previous)) {
+        return true;
+    }
+
+    constexpr double same_state_tol = 1.0 * M_PI / 180.0;
+    return angularDistance(current, previous) > same_state_tol;
+}
+
 template <size_t DOF>
 int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::systems::Wam<DOF> &wam) {
 
@@ -117,7 +132,6 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
     std::vector<haptic_wrist::jp_type> poses;
     std::vector<double> passive_targets;
-    bool any_passive_targets = false;
     std::vector<jp_type> wam_poses;
     for (size_t i = 0; i < yaml_config["gravitycal"].size(); i++) {
         auto pose_node = yaml_config["gravitycal"][i];
@@ -127,7 +141,6 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         }
 
         if (pose_node.size() == 7) {
-            any_passive_targets = true;
             passive_targets.push_back(pose_node[4].as<double>());
             poses.push_back({pose_node[5].as<double>(), pose_node[6].as<double>()});
         } else {
@@ -172,35 +185,44 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         const bool pose_has_passive_target = std::isfinite(passive_targets[i]);
-        if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], hw.getPassivePosition())) {
-            std::cout << "Calibration canceled by user." << std::endl;
-            hw.jointMoveTo(hw.getHome());
-            wam.moveHome();
-            hw.stop();
-            return 1;
-        }
+        const bool pause_for_passive_transition =
+            !pose_has_passive_target || isPassiveStateTransition(i, passive_targets);
 
-        if (any_passive_targets && std::isfinite(passive_targets[i])) {
-            constexpr double passive_tol = 5.0 * M_PI / 180.0;
-            constexpr int max_wait_ms = 12000;
-            auto wait_start = std::chrono::steady_clock::now();
-            bool in_tolerance = false;
+        if (pause_for_passive_transition) {
+            if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], hw.getPassivePosition())) {
+                std::cout << "Calibration canceled by user." << std::endl;
+                hw.jointMoveTo(hw.getHome());
+                wam.moveHome();
+                hw.stop();
+                return 1;
+            }
 
-            while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - wait_start)
-                       .count() < max_wait_ms) {
-                const double passive_now = hw.getPassivePosition();
-                if (angularDistance(passive_now, passive_targets[i]) <= passive_tol) {
-                    in_tolerance = true;
-                    break;
+            if (pose_has_passive_target) {
+                constexpr double passive_tol = 5.0 * M_PI / 180.0;
+                constexpr int max_wait_ms = 12000;
+                auto wait_start = std::chrono::steady_clock::now();
+                bool in_tolerance = false;
+
+                while (std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now() - wait_start)
+                           .count() < max_wait_ms) {
+                    const double passive_now = hw.getPassivePosition();
+                    if (angularDistance(passive_now, passive_targets[i]) <= passive_tol) {
+                        in_tolerance = true;
+                        break;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            }
 
-            if (!in_tolerance) {
-                std::cout << "Warning: passive joint not within tolerance at pose " << i
-                          << ". target=" << passive_targets[i] << " measured=" << hw.getPassivePosition()
-                          << " tol=" << passive_tol << std::endl;
+                if (!in_tolerance) {
+                    std::cout << "Warning: passive joint not within tolerance at pose " << i
+                              << ". target=" << passive_targets[i] << " measured=" << hw.getPassivePosition()
+                              << " tol=" << passive_tol << std::endl;
+                }
             }
+        } else {
+            std::cout << "Pose " << (i + 1)
+                      << " uses same passive state as previous pose; sampling without additional pause." << std::endl;
         }
 
         Eigen::Matrix<double, NUM_POINTS, 2> jp;
