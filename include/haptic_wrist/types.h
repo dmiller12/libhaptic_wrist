@@ -21,4 +21,6 @@ using mt_type = Eigen::Vector2d; // Motor Torque
 using cv_type = Eigen::Vector3d; // Cartesian Velocity (angular)
 using ct_type = Eigen::Vector3d; // Cartesian Torque (angular)
 
+using handle_type = Eigen::Vector4d; // joystick x, joystick y, bumper, trigger
+
 } // namespace haptic_wrist

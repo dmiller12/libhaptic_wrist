@@ -5,6 +5,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <boost/optional.hpp>
 
 #include "config_loader.h"
 #include "trajectory.h"
@@ -43,6 +44,7 @@ HapticWristImpl::HapticWristImpl()
 
     const HapticWristConfig config = load_config(config_dir);
 
+
     home_ = config.home_position;
     handle_kin_theta_ << 0.0, home_(0), home_(1);
     passive_offset_rad_ = config.passive_encoder.offset_rad;
@@ -57,6 +59,7 @@ HapticWristImpl::HapticWristImpl()
     // Transformation matrices for motor/joint conversions.
     jtmp_matrix_ = config.j2mp;
     mtjp_matrix_ = jtmp_matrix_.inverse();
+
 
     // Configure moteus controllers for torque control.
     moteus::Controller::Options options_common;
@@ -78,6 +81,7 @@ HapticWristImpl::HapticWristImpl()
     qf.extra[2].register_number = moteus::Register::kEncoderValidity;
     qf.extra[2].resolution = moteus::kInt8;
 
+
     // This sets up the global transport singleton according to configured args.
     moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
     transport_ = moteus::Controller::MakeSingletonTransport({});
@@ -86,17 +90,18 @@ HapticWristImpl::HapticWristImpl()
     // ID 1 -> WAM J5 (also hosts AUX2 passive encoder)
     // ID 2 -> WAM J6
     controllers_ = {
-        std::make_shared<moteus::Controller>([&]() {
-            auto opts = options_common;
-            opts.id = 1;
-            return opts;
-        }()),
-        std::make_shared<moteus::Controller>([&]() {
-            auto opts = options_common;
-            opts.id = 2;
-            return opts;
-        }()),
+        // std::make_shared<moteus::Controller>([&]() {
+        //     auto opts = options_common;
+        //     opts.id = 1;
+        //     return opts;
+        // }()),
+        // std::make_shared<moteus::Controller>([&]() {
+        //     auto opts = options_common;
+        //     opts.id = 2;
+        //     return opts;
+        // }()),
     };
+
 
     // Set moteus params and initialize motors to a stopped state.
     size_t i = 0;
@@ -111,6 +116,7 @@ HapticWristImpl::HapticWristImpl()
         c->SetStop();
         ++i;
     }
+
 }
 
 HapticWristImpl::~HapticWristImpl() {
@@ -382,6 +388,56 @@ jv_type HapticWristImpl::getVelocity() {
 jt_type HapticWristImpl::getTorque() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_torque_;
+}
+
+boost::optional<handle_type> HapticWristImpl::getHandle() {
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+    
+    receive_frames_.clear();
+    transport_->BlockingCycle(nullptr, 0, &receive_frames_);
+
+    const int center_x = 785;
+    const int center_y = 800;
+    const int deadzone = 40;
+    const int trigger_rest_pos = 203;
+
+    for (const auto& rx : receive_frames_) {
+        int dest = static_cast<int>(rx.destination);
+        int size = static_cast<int>(rx.size);
+
+        // Moteus maps a standard CAN ID of 0x11 to the destination field
+        if (dest == 0x11 && size >= 7) {
+            int raw_trigger = (rx.data[0] << 8) | rx.data[1];
+            int raw_thumbX  = (rx.data[2] << 8) | rx.data[3];
+            int raw_thumbY  = (rx.data[4] << 8) | rx.data[5];
+            int raw_bumper  = rx.data[6];
+
+
+            // map the joysticks into the -1->1 range. Include deadzone so you dont do things with a little jitter
+            double f_thumbX = 0.0;
+            if (raw_thumbX < (center_x - deadzone)) {
+                f_thumbX = static_cast<double>(raw_thumbX - center_x) / center_x;
+            } else if (raw_thumbX > (center_x + deadzone)) {
+                f_thumbX = static_cast<double>(raw_thumbX - center_x) / (1023.0 - center_x);
+            }
+
+            double f_thumbY = 0.0;
+            if (raw_thumbY < (center_y - deadzone)) {
+                f_thumbY = static_cast<double>(raw_thumbY - center_y) / center_y;
+            } else if (raw_thumbY > (center_y + deadzone)) {
+                f_thumbY = static_cast<double>(raw_thumbY - center_y) / (1023.0 - center_y);
+            }
+            
+            double f_trigger = static_cast<double>(raw_trigger) / trigger_rest_pos;
+            f_trigger = std::max(0.0, std::min(f_trigger, 1.0)); 
+            
+            double f_bumper = static_cast<double>(raw_bumper);
+
+            return handle_type(f_thumbX, f_thumbY, f_bumper, f_trigger);
+        }
+    }
+
+    return boost::none;
 }
 
 double HapticWristImpl::getPassivePosition() {

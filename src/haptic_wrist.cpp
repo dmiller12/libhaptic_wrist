@@ -1,5 +1,7 @@
 #include "haptic_wrist/haptic_wrist.h"
 #include "haptic_wrist_impl.h"
+#include <boost/optional.hpp>
+
 
 namespace haptic_wrist {
 
@@ -45,6 +47,10 @@ jv_type HapticWrist::getVelocity() {
 
 jt_type HapticWrist::getTorque() {
     return impl->getTorque();
+}
+
+boost::optional<handle_type> HapticWrist::getHandle() {
+    return impl->getHandle();
 }
 
 double HapticWrist::getPassivePosition() {

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 #include <thread>
+#include <boost/optional.hpp>
 
 namespace haptic_wrist {
 
@@ -50,6 +51,7 @@ class HapticWristImpl {
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
+    boost::optional<handle_type> getHandle();
     double getPassivePosition();
     double getPassiveVelocity();
     const Kinematics& getKinematics() const;

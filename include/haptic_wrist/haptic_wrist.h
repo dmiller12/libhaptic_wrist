@@ -3,6 +3,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <memory>
+#include <boost/optional.hpp>
+
 
 #include "haptic_wrist/kinematics.h"
 #include "haptic_wrist/types.h"
@@ -100,6 +102,12 @@ class HapticWrist {
      * @return Current joint torques [N⋅m] for active joints: [T_ID1, T_ID2]
      */
     jt_type getTorque();
+
+    /**
+     * @brief Returns the current handle joystick, bumper and trigger information
+     * @return Current handle info: [joystickX, joystickY, bumper, trigger] or null
+     */
+    boost::optional<handle_type> getHandle();
 
     /**
      * @brief Returns the passive joint position from AUX2 encoder feedback.
