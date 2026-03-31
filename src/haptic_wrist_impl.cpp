@@ -401,7 +401,8 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
     const int center_x = 785;
     const int center_y = 800;
     const int deadzone = 40;
-    const int trigger_rest_pos = 203;
+    const int trigger_max_pos = 203;
+    const int trigger_min_pos = 45;
 
     for (const auto& rx : receive_frames_) {
         int dest = static_cast<int>(rx.destination);
@@ -431,8 +432,10 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
                 f_thumbY = static_cast<double>(raw_thumbY - center_y) / (1023.0 - center_y);
             }
             
-            double f_trigger = static_cast<double>(raw_trigger) / trigger_rest_pos;
+            // map trigger from 0->1 . 0 is not pressed and 1 is fully pressed
+            double f_trigger = static_cast<double>(raw_trigger - trigger_min_pos) / (trigger_max_pos - trigger_min_pos);
             f_trigger = std::max(0.0, std::min(f_trigger, 1.0)); 
+            f_trigger = 1 - f_trigger;
             
             double f_bumper = static_cast<double>(raw_bumper);
 
