@@ -446,6 +446,23 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
     return boost::none;
 }
 
+// stiffness is between 0 - 255
+void HapticWristImpl::setTriggerHaptics(uint8_t stiffness) {
+    boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
+
+    using FrameType = decltype(receive_frames_)::value_type; 
+    
+    FrameType tx_frame;
+    tx_frame.destination = 0x22;
+    tx_frame.size = 1;
+    tx_frame.data[0] = stiffness;
+
+    std::vector<FrameType> send_frames;
+    send_frames.push_back(tx_frame);
+
+    transport_->BlockingCycle(send_frames.data(), send_frames.size(), nullptr);
+}
+
 double HapticWristImpl::getPassivePosition() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_kin_theta_(0);

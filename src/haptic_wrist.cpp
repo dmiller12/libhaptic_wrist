@@ -53,6 +53,10 @@ boost::optional<handle_type> HapticWrist::getHandle() {
     return impl->getHandle();
 }
 
+void HapticWrist::setTriggerHaptics(uint8_t stiffness) {
+    return impl->setTriggerHaptics(stiffness);
+}
+
 double HapticWrist::getPassivePosition() {
     return impl->getPassivePosition();
 }

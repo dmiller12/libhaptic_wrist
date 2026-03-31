@@ -110,6 +110,11 @@ class HapticWrist {
     boost::optional<handle_type> getHandle();
 
     /**
+     * @brief Pushes back on the trigger based on 0-255 stiffness. The higher the more haptics
+     */
+    void setTriggerHaptics(uint8_t stiffness);
+
+    /**
      * @brief Returns the passive joint position from AUX2 encoder feedback.
      * @return Passive joint position [rad].
      */

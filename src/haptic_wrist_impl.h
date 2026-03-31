@@ -1,5 +1,3 @@
-#pragma once
-
 #include "moteus.h"
 #include <cmath>
 #include <math.h>
@@ -52,6 +50,7 @@ class HapticWristImpl {
     jv_type getVelocity();
     jt_type getTorque();
     boost::optional<handle_type> getHandle();
+    void setTriggerHaptics(uint8_t stiffness);
     double getPassivePosition();
     double getPassiveVelocity();
     const Kinematics& getKinematics() const;
