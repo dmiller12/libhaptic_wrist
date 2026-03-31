@@ -11,7 +11,8 @@ struct convert<MoteusConfig> {
     static bool decode(const Node& node, MoteusConfig& c) {
         c.kd = node["kd"].as<Eigen::Vector2d>();
         if (node["transport_args"]) {
-            c.transport_args = node["transport_args"].as<std::vector<std::string>>();
+            // c.transport_args = node["transport_args"].as<std::vector<std::string>>();
+            c.transport_args = node["transport_args"].as<std::string>();
         }
         return true;
     }

@@ -83,8 +83,10 @@ HapticWristImpl::HapticWristImpl()
 
 
     // This sets up the global transport singleton according to configured args.
-    moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
-    transport_ = moteus::Controller::MakeSingletonTransport({});
+    // moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
+    // transport_ = moteus::Controller::MakeSingletonTransport({});
+    // cant use singleton if 2 usb's are plugged in at the same time
+    transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_args);
 
     // Active controllers:
     // ID 1 -> WAM J5 (also hosts AUX2 passive encoder)
@@ -414,6 +416,7 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
 
 
             // map the joysticks into the -1->1 range. Include deadzone so you dont do things with a little jitter
+            // the resting pos of the joystick is not the halfway point of the values so we have to do this if check
             double f_thumbX = 0.0;
             if (raw_thumbX < (center_x - deadzone)) {
                 f_thumbX = static_cast<double>(raw_thumbX - center_x) / center_x;

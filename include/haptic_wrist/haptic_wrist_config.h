@@ -18,7 +18,8 @@ struct OrientationControllerConfig {
 
 struct MoteusConfig {
     Eigen::Vector2d kd;
-    std::vector<std::string> transport_args;
+    // std::vector<std::string> transport_args;
+    std::string transport_args;
 };
 
 struct PassiveEncoderConfig {
