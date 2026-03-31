@@ -71,6 +71,9 @@ class HapticWristImpl {
     const std::chrono::duration<double> control_period_;
     std::atomic<ControlMode> control_mode_{ControlMode::NONE};
     jp_type position_des_;
+
+    // handle control
+    uint8_t current_stiffness_ = 0;
     
     // Controllers and Kinematics
     std::unique_ptr<JointPositionController> joint_position_controller_;

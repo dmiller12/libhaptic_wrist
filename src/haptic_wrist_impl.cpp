@@ -394,9 +394,20 @@ jt_type HapticWristImpl::getTorque() {
 
 boost::optional<handle_type> HapticWristImpl::getHandle() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+
+    using FrameType = decltype(receive_frames_)::value_type; 
+    
+    FrameType tx_frame;
+    tx_frame.destination = 0x22;
+    tx_frame.size = 1;
+    tx_frame.data[0] = current_stiffness_;
+    std::cout << "trying " << static_cast<int>(current_stiffness_) << std::endl;
+
+    std::vector<FrameType> send_frame;
+    send_frame.push_back(tx_frame);
     
     receive_frames_.clear();
-    transport_->BlockingCycle(nullptr, 0, &receive_frames_);
+    transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames_);
 
     const int center_x = 785;
     const int center_y = 800;
@@ -414,6 +425,8 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
             int raw_thumbX  = (rx.data[2] << 8) | rx.data[3];
             int raw_thumbY  = (rx.data[4] << 8) | rx.data[5];
             int raw_bumper  = rx.data[6];
+            int spring_force  = rx.data[7];
+            std::cout << "actual stiffness " << spring_force << std::endl;
 
 
             // map the joysticks into the -1->1 range. Include deadzone so you dont do things with a little jitter
@@ -449,18 +462,7 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
 // stiffness is between 0 - 255
 void HapticWristImpl::setTriggerHaptics(uint8_t stiffness) {
     boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
-
-    using FrameType = decltype(receive_frames_)::value_type; 
-    
-    FrameType tx_frame;
-    tx_frame.destination = 0x22;
-    tx_frame.size = 1;
-    tx_frame.data[0] = stiffness;
-
-    std::vector<FrameType> send_frames;
-    send_frames.push_back(tx_frame);
-
-    transport_->BlockingCycle(send_frames.data(), send_frames.size(), nullptr);
+    current_stiffness_ = stiffness;
 }
 
 double HapticWristImpl::getPassivePosition() {
