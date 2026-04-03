@@ -8,7 +8,8 @@ moteus:
   kd: [0.08, 0.08]
   # comment out if using fdcanusb
   # transport_args: ["--socketcan-iface", "can2"]
-  transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_5B75C352-if00"
+  # transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_5B75C352-if00"
+  transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00"
 
 passive_encoder:
   # Calibrated from lock points:

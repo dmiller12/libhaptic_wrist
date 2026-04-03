@@ -92,16 +92,16 @@ HapticWristImpl::HapticWristImpl()
     // ID 1 -> WAM J5 (also hosts AUX2 passive encoder)
     // ID 2 -> WAM J6
     controllers_ = {
-        // std::make_shared<moteus::Controller>([&]() {
-        //     auto opts = options_common;
-        //     opts.id = 1;
-        //     return opts;
-        // }()),
-        // std::make_shared<moteus::Controller>([&]() {
-        //     auto opts = options_common;
-        //     opts.id = 2;
-        //     return opts;
-        // }()),
+        std::make_shared<moteus::Controller>([&]() {
+            auto opts = options_common;
+            opts.id = 1;
+            return opts;
+        }()),
+        std::make_shared<moteus::Controller>([&]() {
+            auto opts = options_common;
+            opts.id = 2;
+            return opts;
+        }()),
     };
 
 
@@ -401,7 +401,6 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
     tx_frame.destination = 0x22;
     tx_frame.size = 1;
     tx_frame.data[0] = current_stiffness_;
-    std::cout << "trying " << static_cast<int>(current_stiffness_) << std::endl;
 
     std::vector<FrameType> send_frame;
     send_frame.push_back(tx_frame);
@@ -426,7 +425,6 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
             int raw_thumbY  = (rx.data[4] << 8) | rx.data[5];
             int raw_bumper  = rx.data[6];
             int spring_force  = rx.data[7];
-            std::cout << "actual stiffness " << spring_force << std::endl;
 
 
             // map the joysticks into the -1->1 range. Include deadzone so you dont do things with a little jitter
