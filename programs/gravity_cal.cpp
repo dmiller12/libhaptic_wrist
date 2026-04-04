@@ -5,11 +5,14 @@
 #include "yaml-cpp/yaml.h"
 #include <barrett/units.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <limits>
 #include <string>
 #include <thread>
+#include <tuple>
+#include <utility>
 
 #include <barrett/standard_main_function.h>
 #define NUM_POINTS 2000
@@ -22,6 +25,8 @@ void print_usage(char *program_name) {
     printf("  --pause-on-passive-transition : Pause/confirm only when passive target changes between consecutive "
            "poses (default for 7-value gravitycal rows)\n");
     printf("  --pause-every-pose : Pause/confirm at every pose\n");
+    printf("  --single-direction : Disable bidirectional sampling and use legacy single-pass sampling\n");
+    printf("  --approach-offset-rad <value> : Approach offset for bidirectional sampling (default: 0.03 rad)\n");
     printf("  --help : Prints this help message\n");
 }
 
@@ -56,13 +61,18 @@ bool confirmContinue() {
     return input.empty() || input == "y" || input == "yes";
 }
 
-bool waitForPoseReady(size_t pose_index, bool has_passive_target, double passive_target_rad, double passive_current_rad) {
+bool waitForPoseReady(size_t pose_index, bool has_passive_target, double passive_target_rad, double passive_current_rad,
+                      bool bidirectional_sampling) {
     std::cout << "\nPose " << (pose_index + 1) << " reached." << std::endl;
     if (has_passive_target) {
         std::cout << "Passive target [rad]: " << passive_target_rad
                   << " (current: " << passive_current_rad << ")" << std::endl;
     }
-    std::cout << "Lock passive joint, then press Enter to sample ('q' to quit): ";
+    if (bidirectional_sampling) {
+        std::cout << "Lock passive joint, then press Enter for bidirectional sample ('q' to quit): ";
+    } else {
+        std::cout << "Lock passive joint, then press Enter to sample ('q' to quit): ";
+    }
 
     std::string input;
     std::getline(std::cin, input);
@@ -104,6 +114,8 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
     bool enable_last = false;
     bool pause_on_passive_transition = true;
+    bool bidirectional_sampling = true;
+    double approach_offset_rad = 0.03;
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--enable-last") {
@@ -112,6 +124,16 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
             pause_on_passive_transition = true;
         } else if (arg == "--pause-every-pose") {
             pause_on_passive_transition = false;
+        } else if (arg == "--single-direction") {
+            bidirectional_sampling = false;
+        } else if (arg == "--approach-offset-rad") {
+            if (i + 1 >= argc) {
+                throw std::runtime_error("--approach-offset-rad requires a value.");
+            }
+            approach_offset_rad = std::stod(argv[++i]);
+            if (!std::isfinite(approach_offset_rad) || approach_offset_rad < 0.0) {
+                throw std::runtime_error("--approach-offset-rad must be a non-negative finite value.");
+            }
         } else if (arg == "--help") {
             print_usage(argv[0]);
             return 0;
@@ -180,7 +202,37 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         std::cout << "Program canceled." << std::endl;
         return 1;
     }
+
+    std::cout << "Sampling mode: "
+              << (bidirectional_sampling ? "bidirectional (+/- approach, averaged)" : "single-direction (legacy)")
+              << std::endl;
+    if (bidirectional_sampling) {
+        std::cout << "Approach offset [rad]: " << approach_offset_rad << std::endl;
+    }
+
     hw.hold(true);
+
+    constexpr double bidir_move_vel = 0.05;
+    constexpr double bidir_move_accel = 0.05;
+    constexpr int settle_after_move_ms = 300;
+    auto sampleMean = [&hw]() -> std::pair<haptic_wrist::kq_type, haptic_wrist::jt_type> {
+        Eigen::Matrix<double, NUM_POINTS, 2> jp;
+        Eigen::Matrix<double, NUM_POINTS, 2> jt;
+        Eigen::Matrix<double, NUM_POINTS, 1> passive;
+
+        for (int n = 0; n < NUM_POINTS; n++) {
+            jp.row(n) = hw.getPosition();
+            jt.row(n) = hw.getTorque();
+            passive(n, 0) = hw.getPassivePosition();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+
+        haptic_wrist::kq_type pos_mean;
+        const haptic_wrist::jp_type active_mean = jp.colwise().mean();
+        pos_mean << passive.col(0).mean(), active_mean(0), active_mean(1);
+        return std::make_pair(pos_mean, jt.colwise().mean());
+    };
+
     for (size_t i = 0; i < poses.size(); i++) {
         std::cout << "Moving to\n" << wam_poses[i] << std::endl;
         wam.moveTo(wam_poses[i], true);
@@ -202,7 +254,8 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
             !pause_on_passive_transition || !pose_has_passive_target || isPassiveStateTransition(i, passive_targets);
 
         if (pause_for_passive_transition) {
-            if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], passive_current)) {
+            if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], passive_current,
+                                  bidirectional_sampling)) {
                 std::cout << "Calibration canceled by user." << std::endl;
                 hw.jointMoveTo(hw.getHome());
                 wam.moveHome();
@@ -238,22 +291,39 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
                       << "sampling without additional pause (default transition-only mode)." << std::endl;
         }
 
-        Eigen::Matrix<double, NUM_POINTS, 2> jp;
-        Eigen::Matrix<double, NUM_POINTS, 2> jt;
-        Eigen::Matrix<double, NUM_POINTS, 1> passive;
+        haptic_wrist::kq_type pos_mean;
+        haptic_wrist::jt_type torque_mean;
+        if (!bidirectional_sampling) {
+            std::tie(pos_mean, torque_mean) = sampleMean();
+        } else {
+            haptic_wrist::kq_type pos_accum = haptic_wrist::kq_type::Zero();
+            haptic_wrist::jt_type torque_accum = haptic_wrist::jt_type::Zero();
 
-        for (int n = 0; n < NUM_POINTS; n++) {
-            jp.row(n) = hw.getPosition();
-            jt.row(n) = hw.getTorque();
-            passive(n, 0) = hw.getPassivePosition();
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            for (int pass = 0; pass < 2; pass++) {
+                const double sign = (pass == 0) ? 1.0 : -1.0;
+                haptic_wrist::jp_type approach_pose = poses[i];
+                approach_pose.array() += sign * approach_offset_rad;
+
+                std::cout << "Pose " << (i + 1) << " pass " << (pass + 1) << "/2: approach target from "
+                          << ((sign > 0.0) ? "+offset" : "-offset") << std::endl;
+
+                hw.jointMoveTo(approach_pose, bidir_move_vel, bidir_move_accel);
+                hw.jointMoveTo(poses[i], bidir_move_vel, bidir_move_accel);
+                std::this_thread::sleep_for(std::chrono::milliseconds(settle_after_move_ms));
+
+                haptic_wrist::kq_type pass_pos_mean;
+                haptic_wrist::jt_type pass_torque_mean;
+                std::tie(pass_pos_mean, pass_torque_mean) = sampleMean();
+                pos_accum += pass_pos_mean;
+                torque_accum += pass_torque_mean;
+            }
+
+            pos_mean = 0.5 * pos_accum;
+            torque_mean = 0.5 * torque_accum;
         }
 
-        haptic_wrist::kq_type pos_mean;
-        const haptic_wrist::jp_type active_mean = jp.colwise().mean();
-        pos_mean << passive.col(0).mean(), active_mean(0), active_mean(1);
         positions.push_back(pos_mean);
-        torques.push_back(jt.colwise().mean());
+        torques.push_back(torque_mean);
     }
     hw.jointMoveTo(hw.getHome());
     wam.moveHome();
