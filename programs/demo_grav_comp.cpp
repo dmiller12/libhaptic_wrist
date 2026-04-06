@@ -1,5 +1,7 @@
 #include "haptic_wrist/haptic_wrist.h"
 #include <barrett/units.h>
+#include <iostream>
+#include <string>
 
 #include "tool_frame_cb.h"
 #include <barrett/products/product_manager.h>
@@ -18,9 +20,24 @@ int wam_main(int argc, char** argv, barrett::ProductManager& pm, barrett::system
     ToolFrameCb toolframeCb(pm.getExecutionManager(), &hw);
     barrett::systems::connect(wam.toolPose.output, toolframeCb.input);
 
-    while (true) {
-        std::cout << "position\n" << hw.getPosition() << std::endl;
-        sleep(1);
+    std::cout << "Press [Enter] to print current joint poses. Type q and press [Enter] to quit." << std::endl;
+    std::string line;
+    while (std::cout << ">>> " && std::getline(std::cin, line)) {
+        if (line == "q" || line == "quit" || line == "exit") {
+            break;
+        }
+
+        if (!line.empty() && line != "p" && line != "print") {
+            std::cout << "Unknown command. Use [Enter]/p/print to capture a pose, or q to quit." << std::endl;
+            continue;
+        }
+
+        auto wam_jp = wam.getJointPositions();
+        auto wrist_jp = hw.getPosition();
+        auto wrist_passive = hw.getPassivePosition();
+        std::cout << "WAM joints (rad):\n" << wam_jp << std::endl;
+        std::cout << "Wrist active joints [ID1, ID2] (rad):\n" << wrist_jp << std::endl;
+        std::cout << "Wrist passive joint (rad): " << wrist_passive << std::endl;
     }
 
     pm.getSafetyModule()->waitForMode(barrett::SafetyModule::IDLE);

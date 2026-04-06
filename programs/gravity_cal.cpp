@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <string>
 #include <thread>
@@ -28,6 +29,24 @@ void print_usage(char *program_name) {
     printf("  --single-direction : Disable bidirectional sampling and use legacy single-pass sampling\n");
     printf("  --approach-offset-rad <value> : Approach offset for bidirectional sampling (default: 0.03 rad)\n");
     printf("  --help : Prints this help message\n");
+}
+
+void print_intro_banner() {
+    std::cout
+        << "\n"
+        << "                *** Barrett WAM Gravity Calibration Utility ***\n"
+        << "\n"
+        << "This utility will calculate cumulative first moment of mass data for each link\n"
+        << "of your WAM Arm. This data is used by the gravity compensation routine to\n"
+        << "support WAM's weight in gravity. The program will move the WAM to several\n"
+        << "predefined positions and take torque measurements at each location.\n"
+        << "\n"
+        << "The calculations rely on having accurate kinematic information. Consider\n"
+        << "performing the zero-calibration procedure before proceeding.\n"
+        << "\n"
+        << "IMPORTANT: DO NOT TOUCH the WAM during the measurement process, or the\n"
+        << "calibration computations will be significantly wrong.\n"
+        << std::endl;
 }
 
 Eigen::Matrix4d posQuatToTransform(const Eigen::Vector3d &position, const Eigen::Quaterniond &quaternion) {
@@ -140,14 +159,16 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         }
     }
 
+    print_intro_banner();
+
     if (!enable_last) {
-        std::cout << "Note: The last link parameters are not estimated, use --help to see how to include."
+        std::cout << ">>> NOTE: The last link parameters are not estimated. Use --help to include them."
                   << std::endl;
     }
 
     BARRETT_UNITS_TEMPLATE_TYPEDEFS(DOF);
     if (DOF != 4) {
-        std::cout << "Only 4Dof supported" << std::endl;
+        std::cout << ">>> ERROR: Only 4-DOF WAM is currently supported." << std::endl;
         return 1;
     }
     wam.gravityCompensate();
@@ -197,17 +218,17 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     hw.run();
 
     auto out_file = boost::filesystem::path(config_dir) / "gravity_cal.yaml";
-    std::cout << "\nThis program will overwrite: " << out_file.string() << std::endl;
+    std::cout << ">>> This program will overwrite: " << out_file.string() << std::endl;
     if (!confirmContinue()) {
-        std::cout << "Program canceled." << std::endl;
+        std::cout << ">>> ERROR: Calibration canceled." << std::endl;
         return 1;
     }
 
-    std::cout << "Sampling mode: "
+    std::cout << ">>> Sampling mode: "
               << (bidirectional_sampling ? "bidirectional (+/- approach, averaged)" : "single-direction (legacy)")
               << std::endl;
     if (bidirectional_sampling) {
-        std::cout << "Approach offset [rad]: " << approach_offset_rad << std::endl;
+        std::cout << ">>> Approach offset [rad]: " << approach_offset_rad << std::endl;
     }
 
     hw.hold(true);
@@ -234,12 +255,17 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
     };
 
     for (size_t i = 0; i < poses.size(); i++) {
-        std::cout << "Moving to\n" << wam_poses[i] << std::endl;
+        std::cout << "\nCurrent Pose: " << (i + 1) << " of " << poses.size() << "." << std::endl;
+        std::cout << "Current Phase: MOVE_WAM" << std::endl;
+        std::cout << "Current Status: Moving to WAM position ..." << std::endl;
+        std::cout << "  WAM target: " << wam_poses[i].transpose() << std::endl;
         wam.moveTo(wam_poses[i], true);
         auto wamPose = wam.getToolPose();
 
         base_to_world.push_back(posQuatToTransform(boost::get<0>(wamPose), boost::get<1>(wamPose)));
-        std::cout << "Moving to\n" << poses[i] << std::endl;
+        std::cout << "Current Phase: MOVE_WRIST" << std::endl;
+        std::cout << "Current Status: Moving to wrist position ..." << std::endl;
+        std::cout << "  Wrist active target: " << poses[i].transpose() << std::endl;
 
         hw.jointMoveTo(poses[i]);
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -256,7 +282,7 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
         if (pause_for_passive_transition) {
             if (!waitForPoseReady(i, pose_has_passive_target, passive_targets[i], passive_current,
                                   bidirectional_sampling)) {
-                std::cout << "Calibration canceled by user." << std::endl;
+                std::cout << ">>> ERROR: Calibration canceled by user." << std::endl;
                 hw.jointMoveTo(hw.getHome());
                 wam.moveHome();
                 hw.stop();
@@ -281,14 +307,14 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
                 }
 
                 if (!in_tolerance) {
-                    std::cout << "Warning: passive joint not within tolerance at pose " << i
+                    std::cout << ">>> WARNING: Passive joint not within tolerance at pose " << (i + 1)
                               << ". target=" << passive_targets[i] << " measured=" << hw.getPassivePosition()
                               << " tol=" << passive_tol << std::endl;
                 }
             }
         } else {
-            std::cout << "Pose " << (i + 1) << " uses same passive state as previous pose; "
-                      << "sampling without additional pause (default transition-only mode)." << std::endl;
+            std::cout << "Current Status: Pose " << (i + 1) << " uses same passive state as previous pose; "
+                      << "sampling without additional pause." << std::endl;
         }
 
         haptic_wrist::kq_type pos_mean;
@@ -304,8 +330,9 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
                 haptic_wrist::jp_type approach_pose = poses[i];
                 approach_pose.array() += sign * approach_offset_rad;
 
-                std::cout << "Pose " << (i + 1) << " pass " << (pass + 1) << "/2: approach target from "
-                          << ((sign > 0.0) ? "+offset" : "-offset") << std::endl;
+                std::cout << "Current Phase: MEAS_PASS_" << (pass + 1) << std::endl;
+                std::cout << "Current Status: Starting a measurement pass (" << (pass + 1)
+                          << "/2), approach from " << ((sign > 0.0) ? "+offset" : "-offset") << " ..." << std::endl;
 
                 hw.jointMoveTo(approach_pose, bidir_move_vel, bidir_move_accel);
                 hw.jointMoveTo(poses[i], bidir_move_vel, bidir_move_accel);
@@ -324,7 +351,14 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
         positions.push_back(pos_mean);
         torques.push_back(torque_mean);
+
+        std::cout << "Recent Statistics:" << std::endl;
+        std::cout << "  Positions: " << pos_mean.transpose() << std::endl;
+        std::cout << "    Torques: " << torque_mean.transpose() << std::endl;
     }
+
+    std::cout << ">>> Calibration completed!" << std::endl;
+    std::cout << ">>> Moving back to home position." << std::endl;
     hw.jointMoveTo(hw.getHome());
     wam.moveHome();
     hw.stop();
@@ -436,5 +470,6 @@ int wam_main(int argc, char **argv, barrett::ProductManager &pm, barrett::system
 
     fout << out.c_str() << "\n";
     fout.close();
+    std::cout << ">>> Data written to: " << out_file.string() << std::endl;
     return 0;
 }
