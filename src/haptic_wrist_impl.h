@@ -15,6 +15,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <boost/optional.hpp>
 
@@ -60,8 +61,7 @@ class HapticWristImpl {
     // Moteus hardware interface
     std::vector<std::shared_ptr<mjbots::moteus::Controller>> controllers_;
     std::shared_ptr<mjbots::moteus::Transport> transport_;
-    std::vector<mjbots::moteus::CanFdFrame> send_frames_;
-    std::vector<mjbots::moteus::CanFdFrame> receive_frames_;
+    std::mutex transport_mutex_;
     mjbots::moteus::PositionMode::Command cmd_;
     int missed_replies_ = 0;
 
