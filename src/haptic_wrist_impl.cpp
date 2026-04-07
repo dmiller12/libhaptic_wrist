@@ -87,6 +87,7 @@ HapticWristImpl::HapticWristImpl()
     // transport_ = moteus::Controller::MakeSingletonTransport({});
     // cant use singleton if 2 usb's are plugged in at the same time
     transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_args);
+    options_common.transport = transport_;
 
     // Active controllers:
     // ID 1 -> WAM J5 (also hosts AUX2 passive encoder)
@@ -95,11 +96,13 @@ HapticWristImpl::HapticWristImpl()
         std::make_shared<moteus::Controller>([&]() {
             auto opts = options_common;
             opts.id = 1;
+            opts.transport = transport_;
             return opts;
         }()),
         std::make_shared<moteus::Controller>([&]() {
             auto opts = options_common;
             opts.id = 2;
+            opts.transport = transport_;
             return opts;
         }()),
     };
