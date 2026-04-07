@@ -414,11 +414,13 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
 
     std::vector<FrameType> send_frame{tx_frame};
     std::vector<FrameType> receive_frames;
-    
-    {
-        std::lock_guard<std::mutex> lock(transport_mutex_);
-        transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames);
+
+    // Avoid stalling the wrist control loop if it is currently using transport.
+    std::unique_lock<std::mutex> transport_lock(transport_mutex_, std::try_to_lock);
+    if (!transport_lock.owns_lock()) {
+        return boost::none;
     }
+    transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames);
 
     const int center_x = 785;
     const int center_y = 800;
