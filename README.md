@@ -83,3 +83,15 @@ Open tview:
 ```bash
 python3 -m moteus_gui.tview --target 1,2
 ```
+Open tview (wrist):
+```bash
+python3 -m moteus_gui.tview --devices=1,2 --fdcanusb /dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00
+```
+Open tview (gripper):
+```bash
+python3 -m moteus_gui.tview --devices=3 --fdcanusb /dev/serial/by-id/usb-mjbots_fdcanusb_5B75C352-if00
+```
+Find moteus serial devices:
+```bash
+ls -l /dev/serial/by-id/
+```
