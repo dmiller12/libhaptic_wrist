@@ -266,18 +266,22 @@ bool HapticWristImpl::entryPoint() {
 }
 
 bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
-    send_frames_.clear();
+    std::vector<moteus::CanFdFrame> send_frames;
+    send_frames.reserve(controllers_.size());
     for (size_t i = 0; i < controllers_.size(); i++) {
         cmd_.feedforward_torque = des_motor_torque(i);
-        send_frames_.push_back(controllers_[i]->MakePosition(cmd_));
+        send_frames.push_back(controllers_[i]->MakePosition(cmd_));
     }
 
-    receive_frames_.clear();
-    transport_->BlockingCycle(&send_frames_[0], send_frames_.size(), &receive_frames_);
+    std::vector<moteus::CanFdFrame> receive_frames;
+    {
+        std::lock_guard<std::mutex> lock(transport_mutex_);
+        transport_->BlockingCycle(send_frames.data(), send_frames.size(), &receive_frames);
+    }
 
     // --- Parse Responses and Update State ---
-    const auto maybe_servo1 = FindServo(receive_frames_, 1);
-    const auto maybe_servo2 = FindServo(receive_frames_, 2);
+    const auto maybe_servo1 = FindServo(receive_frames, 1);
+    const auto maybe_servo2 = FindServo(receive_frames, 2);
 
     if (!maybe_servo1 || !maybe_servo2) {
         missed_replies_++;
@@ -396,20 +400,25 @@ jt_type HapticWristImpl::getTorque() {
 }
 
 boost::optional<handle_type> HapticWristImpl::getHandle() {
-    boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+    uint8_t stiffness = 0;
+    {
+        boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+        stiffness = current_stiffness_;
+    }
 
-    using FrameType = decltype(receive_frames_)::value_type; 
-    
+    using FrameType = moteus::CanFdFrame;
     FrameType tx_frame;
     tx_frame.destination = 0x22;
     tx_frame.size = 1;
-    tx_frame.data[0] = current_stiffness_;
+    tx_frame.data[0] = stiffness;
 
-    std::vector<FrameType> send_frame;
-    send_frame.push_back(tx_frame);
+    std::vector<FrameType> send_frame{tx_frame};
+    std::vector<FrameType> receive_frames;
     
-    receive_frames_.clear();
-    transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames_);
+    {
+        std::lock_guard<std::mutex> lock(transport_mutex_);
+        transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames);
+    }
 
     const int center_x = 785;
     const int center_y = 800;
@@ -417,7 +426,7 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
     const int trigger_max_pos = 203;
     const int trigger_min_pos = 45;
 
-    for (const auto& rx : receive_frames_) {
+    for (const auto& rx : receive_frames) {
         int dest = static_cast<int>(rx.destination);
         int size = static_cast<int>(rx.size);
 
