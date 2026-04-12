@@ -104,6 +104,13 @@ class HapticWristImpl {
     boost::mutex set_mutex_;
     boost::shared_mutex state_mutex_;
 
+    // handle polling
+    int handle_center_x = 785;
+    int handle_center_y = 800;
+    int handle_deadzone = 40;
+    int handle_trigger_max_pos = 203;
+    int handle_trigger_min_pos = 45;
+
     // Main control loop
     bool entryPoint();
     // Hardware command execution

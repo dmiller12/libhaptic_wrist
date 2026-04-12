@@ -44,6 +44,11 @@ HapticWristImpl::HapticWristImpl()
 
     const HapticWristConfig config = load_config(config_dir);
 
+    handle_center_x = config.handle.center_x;
+    handle_center_y = config.handle.center_y;
+    handle_deadzone = config.handle.deadzone;
+    handle_trigger_max_pos = config.handle.trigger_max_pos;
+    handle_trigger_min_pos = config.handle.trigger_min_pos;
 
     home_ = config.home_position;
     handle_kin_theta_ << 0.0, home_(0), home_(1);
@@ -422,12 +427,6 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
     }
     transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames);
 
-    const int center_x = 785;
-    const int center_y = 800;
-    const int deadzone = 40;
-    const int trigger_max_pos = 203;
-    const int trigger_min_pos = 45;
-
     for (const auto& rx : receive_frames) {
         int dest = static_cast<int>(rx.destination);
         int size = static_cast<int>(rx.size);
@@ -444,21 +443,21 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
             // map the joysticks into the -1->1 range. Include deadzone so you dont do things with a little jitter
             // the resting pos of the joystick is not the halfway point of the values so we have to do this if check
             double f_thumbX = 0.0;
-            if (raw_thumbX < (center_x - deadzone)) {
-                f_thumbX = static_cast<double>(raw_thumbX - center_x) / center_x;
-            } else if (raw_thumbX > (center_x + deadzone)) {
-                f_thumbX = static_cast<double>(raw_thumbX - center_x) / (1023.0 - center_x);
+            if (raw_thumbX < (handle_center_x - handle_deadzone)) {
+                f_thumbX = static_cast<double>(raw_thumbX - handle_center_x) / handle_center_x;
+            } else if (raw_thumbX > (handle_center_x + handle_deadzone)) {
+                f_thumbX = static_cast<double>(raw_thumbX - handle_center_x) / (1023.0 - handle_center_x);
             }
 
             double f_thumbY = 0.0;
-            if (raw_thumbY < (center_y - deadzone)) {
-                f_thumbY = static_cast<double>(raw_thumbY - center_y) / center_y;
-            } else if (raw_thumbY > (center_y + deadzone)) {
-                f_thumbY = static_cast<double>(raw_thumbY - center_y) / (1023.0 - center_y);
+            if (raw_thumbY < (handle_center_y - handle_deadzone)) {
+                f_thumbY = static_cast<double>(raw_thumbY - handle_center_y) / handle_center_y;
+            } else if (raw_thumbY > (handle_center_y + handle_deadzone)) {
+                f_thumbY = static_cast<double>(raw_thumbY - handle_center_y) / (1023.0 - handle_center_y);
             }
             
             // map trigger from 0->1 . 0 is not pressed and 1 is fully pressed
-            double f_trigger = static_cast<double>(raw_trigger - trigger_min_pos) / (trigger_max_pos - trigger_min_pos);
+            double f_trigger = static_cast<double>(raw_trigger - handle_trigger_min_pos) / (handle_trigger_max_pos - handle_trigger_min_pos);
             f_trigger = std::max(0.0, std::min(f_trigger, 1.0)); 
             f_trigger = 1 - f_trigger;
             

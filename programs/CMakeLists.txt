@@ -27,9 +27,9 @@ target_link_libraries(joint_move
     pthread
 )
 
-add_executable(gripper_commands gripper_commands.cpp)
-target_include_directories(gripper_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gripper_commands 
+add_executable(handle_commands handle_commands.cpp)
+target_include_directories(handle_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(handle_commands 
     haptic_wrist
     pthread
 )

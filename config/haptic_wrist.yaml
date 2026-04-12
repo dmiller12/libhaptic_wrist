@@ -4,6 +4,13 @@
 #   - Controller ID 2 drives WAM joint 6
 #   - Passive DoF is read from the MA600 on AUX2 of controller ID 1
 
+handle:
+  center_x: 785
+  center_y: 800
+  deadzone: 40
+  trigger_max_pos: 203
+  trigger_min_pos: 45
+
 moteus:
   kd: [0.02, 0.02]
   # comment out if using fdcanusb

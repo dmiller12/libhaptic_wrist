@@ -30,6 +30,18 @@ struct convert<haptic_wrist::DHParameter> {
 };
 
 template <>
+struct convert<HandleConfig> {
+    static bool decode(const Node& node, HandleConfig& c) {
+        c.center_x = node["center_x"] ? node["center_x"].as<int>() : 785;
+        c.center_y = node["center_y"] ? node["center_y"].as<int>() : 800;
+        c.deadzone = node["deadzone"] ? node["deadzone"].as<int>() : 40;
+        c.trigger_max_pos = node["trigger_max_pos"] ? node["trigger_max_pos"].as<int>() : 203;
+        c.trigger_min_pos = node["trigger_min_pos"] ? node["trigger_min_pos"].as<int>() : 45;
+        return true;
+    }
+};
+
+template <>
 struct convert<JointPositionControllerConfig> {
     static bool decode(const Node& node, JointPositionControllerConfig& c) {
         c.kp = node["kp"].as<Eigen::Vector2d>();
@@ -74,6 +86,11 @@ struct convert<HapticWristConfig> {
             config.passive_encoder = node["passive_encoder"].as<PassiveEncoderConfig>();
         } else {
             config.passive_encoder = PassiveEncoderConfig{};
+        }
+        if (node["handle"]) {
+            config.handle = node["handle"].as<HandleConfig>();
+        } else {
+            config.handle = HandleConfig{};
         }
         return true;
     }
