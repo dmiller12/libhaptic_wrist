@@ -272,11 +272,21 @@ bool HapticWristImpl::entryPoint() {
 
 bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     std::vector<moteus::CanFdFrame> send_frames;
-    send_frames.reserve(controllers_.size());
+    send_frames.reserve(controllers_.size() + 1); // +1 for handle
     for (size_t i = 0; i < controllers_.size(); i++) {
         cmd_.feedforward_torque = des_motor_torque(i);
         send_frames.push_back(controllers_[i]->MakePosition(cmd_));
     }
+
+    // send stiffness to handle
+    moteus::CanFdFrame handle_tx;
+    handle_tx.destination = 0x22;
+    handle_tx.size = 1;
+    {
+        boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+        handle_tx.data[0] = current_stiffness_;
+    }
+    send_frames.push_back(handle_tx);
 
     std::vector<moteus::CanFdFrame> receive_frames;
     {
@@ -366,6 +376,48 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         passive_vel_rad_s *= passive_scale_;
     }
 
+    // handle parsing
+    for (const auto& rx : receive_frames) {
+        int dest = static_cast<int>(rx.destination);
+        int size = static_cast<int>(rx.size);
+
+        // Moteus maps a standard CAN ID of 0x11 to the destination field
+        if (dest == 0x11 && size >= 7) {
+            int raw_trigger = (rx.data[0] << 8) | rx.data[1];
+            int raw_thumbX  = (rx.data[2] << 8) | rx.data[3];
+            int raw_thumbY  = (rx.data[4] << 8) | rx.data[5];
+            int raw_bumper  = rx.data[6];
+            int spring_force  = rx.data[7];
+
+
+            // map the joysticks into the -1->1 range. include deadzone so you dont do things with a little jitter
+            // the resting pos of the joystick is not the halfway point of the values so we have to do this if check
+            double f_thumbX = 0.0;
+            if (raw_thumbX < (handle_center_x - handle_deadzone)) {
+                f_thumbX = static_cast<double>(raw_thumbX - handle_center_x) / handle_center_x;
+            } else if (raw_thumbX > (handle_center_x + handle_deadzone)) {
+                f_thumbX = static_cast<double>(raw_thumbX - handle_center_x) / (1023.0 - handle_center_x);
+            }
+
+            double f_thumbY = 0.0;
+            if (raw_thumbY < (handle_center_y - handle_deadzone)) {
+                f_thumbY = static_cast<double>(raw_thumbY - handle_center_y) / handle_center_y;
+            } else if (raw_thumbY > (handle_center_y + handle_deadzone)) {
+                f_thumbY = static_cast<double>(raw_thumbY - handle_center_y) / (1023.0 - handle_center_y);
+            }
+            
+            // map trigger from 0->1 . 0 is not pressed and 1 is fully pressed
+            double f_trigger = static_cast<double>(raw_trigger - handle_trigger_min_pos) / (handle_trigger_max_pos - handle_trigger_min_pos);
+            f_trigger = std::max(0.0, std::min(f_trigger, 1.0)); 
+            f_trigger = 1 - f_trigger;
+            
+            double f_bumper = static_cast<double>(raw_bumper);
+
+            boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
+            handle_joy_ = handle_type(f_thumbX, f_thumbY, f_bumper, f_trigger);
+        }
+    }
+
     {
         boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
         handle_theta_ = compute_pos(motor_theta);
@@ -405,69 +457,8 @@ jt_type HapticWristImpl::getTorque() {
 }
 
 boost::optional<handle_type> HapticWristImpl::getHandle() {
-    uint8_t stiffness = 0;
-    {
-        boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
-        stiffness = current_stiffness_;
-    }
-
-    using FrameType = moteus::CanFdFrame;
-    FrameType tx_frame;
-    tx_frame.destination = 0x22;
-    tx_frame.size = 1;
-    tx_frame.data[0] = stiffness;
-
-    std::vector<FrameType> send_frame{tx_frame};
-    std::vector<FrameType> receive_frames;
-
-    // Avoid stalling the wrist control loop if it is currently using transport.
-    std::unique_lock<std::mutex> transport_lock(transport_mutex_, std::try_to_lock);
-    if (!transport_lock.owns_lock()) {
-        return boost::none;
-    }
-    transport_->BlockingCycle(send_frame.data(), send_frame.size(), &receive_frames);
-
-    for (const auto& rx : receive_frames) {
-        int dest = static_cast<int>(rx.destination);
-        int size = static_cast<int>(rx.size);
-
-        // Moteus maps a standard CAN ID of 0x11 to the destination field
-        if (dest == 0x11 && size >= 7) {
-            int raw_trigger = (rx.data[0] << 8) | rx.data[1];
-            int raw_thumbX  = (rx.data[2] << 8) | rx.data[3];
-            int raw_thumbY  = (rx.data[4] << 8) | rx.data[5];
-            int raw_bumper  = rx.data[6];
-            int spring_force  = rx.data[7];
-
-
-            // map the joysticks into the -1->1 range. Include deadzone so you dont do things with a little jitter
-            // the resting pos of the joystick is not the halfway point of the values so we have to do this if check
-            double f_thumbX = 0.0;
-            if (raw_thumbX < (handle_center_x - handle_deadzone)) {
-                f_thumbX = static_cast<double>(raw_thumbX - handle_center_x) / handle_center_x;
-            } else if (raw_thumbX > (handle_center_x + handle_deadzone)) {
-                f_thumbX = static_cast<double>(raw_thumbX - handle_center_x) / (1023.0 - handle_center_x);
-            }
-
-            double f_thumbY = 0.0;
-            if (raw_thumbY < (handle_center_y - handle_deadzone)) {
-                f_thumbY = static_cast<double>(raw_thumbY - handle_center_y) / handle_center_y;
-            } else if (raw_thumbY > (handle_center_y + handle_deadzone)) {
-                f_thumbY = static_cast<double>(raw_thumbY - handle_center_y) / (1023.0 - handle_center_y);
-            }
-            
-            // map trigger from 0->1 . 0 is not pressed and 1 is fully pressed
-            double f_trigger = static_cast<double>(raw_trigger - handle_trigger_min_pos) / (handle_trigger_max_pos - handle_trigger_min_pos);
-            f_trigger = std::max(0.0, std::min(f_trigger, 1.0)); 
-            f_trigger = 1 - f_trigger;
-            
-            double f_bumper = static_cast<double>(raw_bumper);
-
-            return handle_type(f_thumbX, f_thumbY, f_bumper, f_trigger);
-        }
-    }
-
-    return boost::none;
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+    return handle_joy_;
 }
 
 // stiffness is between 0 - 255

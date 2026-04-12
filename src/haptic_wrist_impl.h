@@ -110,6 +110,7 @@ class HapticWristImpl {
     int handle_deadzone = 40;
     int handle_trigger_max_pos = 203;
     int handle_trigger_min_pos = 45;
+    boost::optional<handle_type> handle_joy_;
 
     // Main control loop
     bool entryPoint();
