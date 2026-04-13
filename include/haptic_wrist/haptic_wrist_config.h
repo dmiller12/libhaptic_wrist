@@ -5,6 +5,13 @@
 #include <Eigen/Dense>
 #include "haptic_wrist/kinematics.h"
 
+struct HandleConfig {
+    int center_x = 785;
+    int center_y = 800;
+    int deadzone = 40;
+    int trigger_max_pos = 203;
+    int trigger_min_pos = 45;
+};
 
 struct JointPositionControllerConfig {
     Eigen::Vector2d kp;
@@ -37,4 +44,5 @@ struct HapticWristConfig {
     OrientationControllerConfig orientation_controller;
     PassiveEncoderConfig passive_encoder;
     Eigen::Matrix<double, 2, 3> gravity_mus;
+    HandleConfig handle;
 };
