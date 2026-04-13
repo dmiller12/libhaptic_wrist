@@ -5,7 +5,7 @@
 #   - Passive DoF is read from the MA600 on AUX2 of controller ID 1
 
 moteus:
-  kd: [0.02, 0.02]
+  kd: [0.00, 0.00]
   # comment out if using fdcanusb
   transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00" # top left usbc on laptop
 
