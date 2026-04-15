@@ -91,7 +91,12 @@ HapticWristImpl::HapticWristImpl()
     // moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
     // transport_ = moteus::Controller::MakeSingletonTransport({});
     // cant use singleton if 2 usb's are plugged in at the same time
-    transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_args);
+
+    // transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_args);
+    moteus::Socketcan::Options can_opts;
+    can_opts.ifname = config.moteus.transport_args;
+    transport_ = std::make_shared<moteus::Socketcan>(can_opts);
+
     options_common.transport = transport_;
 
     // Active controllers:
