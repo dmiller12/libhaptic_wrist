@@ -15,14 +15,14 @@ moteus:
   kd: [0.00, 0.00]
   # comment out if using fdcanusb
   # transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00" # top left usbc on laptop
-  transport_args: "can1" # top left usbc on laptop
+  transport_args: "can3" # top left usbc on laptop
 
 passive_encoder:
   # Calibrated from lock points:
   # raw(0 deg)=2.5733, raw(+90)=1.14065, raw(-90)=4.01268
   # theta_phys = wrap_to_pi((theta_raw - offset_rad) * scale)
-  offset_rad: 2.5733
-  scale: -1.0939
+  offset_rad: 4.4831
+  scale: -1.0908
 
 kinematics:
   dh:
