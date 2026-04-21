@@ -13,9 +13,10 @@ handle:
 
 moteus:
   kd: [0.00, 0.00]
-  # comment out if using fdcanusb
-  # transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00" # top left usbc on laptop
-  transport_args: "can3" # top left usbc on laptop
+  # specify serial id if using fdcansub
+  transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00"
+  # specify channel if using pcie
+  # transport_args: "can3"
 
 passive_encoder:
   # Calibrated from lock points:
