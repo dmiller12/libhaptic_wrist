@@ -125,6 +125,9 @@ class HapticWristImpl {
     static double FindExtraRegister(const mjbots::moteus::Query::Result& result, int16_t register_number);
 
     static constexpr double radiansPerRotation = 2.0 * M_PI;
+
+    // debug
+    int loop_counter = 0;
 };
 
 } // namespace haptic_wrist

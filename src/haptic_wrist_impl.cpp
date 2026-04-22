@@ -211,8 +211,18 @@ void HapticWristImpl::stop() {
 
 // --- Main Control Loop ---
 bool HapticWristImpl::entryPoint() {
+    static auto last_loop_time = std::chrono::steady_clock::now();
+
     while (running_.load()) {
         const auto loop_start_time = std::chrono::steady_clock::now();
+
+        double loop_interval = std::chrono::duration<double, std::milli>(loop_start_time - last_loop_time).count();
+        last_loop_time = loop_start_time;
+
+        if (++loop_counter % 500 == 0) {
+            std::cout << "[Wrist] Control loop interval: " << loop_interval << " ms\n";
+        }
+
         jt_type total_joint_torques = jt_type::Zero();
 
         // --- State Snapshot ---
@@ -293,7 +303,15 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     std::vector<moteus::CanFdFrame> receive_frames;
     {
         std::lock_guard<std::mutex> lock(transport_mutex_);
+        auto moteus_start = std::chrono::steady_clock::now();
         transport_->BlockingCycle(send_frames.data(), send_frames.size(), &receive_frames);
+        auto moteus_end = std::chrono::steady_clock::now();
+        
+        if (++loop_counter % 500 == 0) {
+            std::cout << "[Wrist] Moteus execution round-trip: " 
+                      << std::chrono::duration<double, std::milli>(moteus_end - moteus_start).count() 
+                      << " ms\n";
+        }
     }
 
     // --- Parse Responses and Update State ---

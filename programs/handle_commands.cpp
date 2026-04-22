@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include <boost/optional.hpp>
+#include <thread>
+#include <chrono>
 
 
 int main(int argc, char** argv) {
@@ -12,6 +14,8 @@ int main(int argc, char** argv) {
     (void)argv;
 
     haptic_wrist::HapticWrist hw;
+    hw.gravityCompensate(false);
+    hw.run();
 
     while (true) {
         if (boost::optional<haptic_wrist::handle_type> opt_handle = hw.getHandle()) {
@@ -23,7 +27,7 @@ int main(int argc, char** argv) {
                     << " | trigger: " << handle[3] << std::endl;
         }
         sleep(0.1);
-
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
     hw.stop();
