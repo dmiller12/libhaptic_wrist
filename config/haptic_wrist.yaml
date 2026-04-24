@@ -44,8 +44,8 @@ j2mp:
 home: [0.0, 0.0]
 
 joint_position_controller:
-  kp: [0.8, 0.8]
-  kd: [0.005, 0.005]
+  kp: [0.05, 0.05]
+  kd: [0.001, 0.001]
 
 gravitycal:
   # Pose format:
