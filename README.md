@@ -46,7 +46,7 @@ Overwrite the config dir location with env variable HAPTIC_WRIST_CONFIG_DIR
 
 in haptic_wrist.yaml set transport_type: "pcie" and rebuild
 
-then, either run ```source wam_ws/src/wam_teleop/scripts/can_init_pcifd.sh``` or manually setup the wrist as follows:
+then, either run ```source wam_ws/src/wam_teleop/scripts/can_init_pcifd.sh``` or manually setup the gripper as follows:
 
 ```
 sudo modprobe peak_pciefd
@@ -62,7 +62,7 @@ in haptic_wrist.yaml set transport_type: "usb" and rebuild
 
 can interface does not need to be setup with usb like in pcie as we are using a serial connection.
 
-**If the transport_args are not provided or an empty string is used, the default fdcanusb transport method will be used.**
+**If the transport_type is not provided or an empty string is used, the default fdcanusb transport method will be used.**
 
 ### Common Moteus Commands
 Zero the moteus
