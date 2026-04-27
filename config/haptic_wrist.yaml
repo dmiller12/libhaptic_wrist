@@ -13,10 +13,9 @@ handle:
 
 moteus:
   kd: [0.00, 0.00]
-  # specify serial id if using fdcansub
-  transport_args: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00"
-  # specify channel if using pcie
-  # transport_args: "can3"
+  transport_type: "usb" # one of usb or pcie
+  transport_usb: "/dev/serial/by-id/usb-mjbots_fdcanusb_C54FFEC3-if00"
+  transport_pcie: "can3"
 
 passive_encoder:
   # Calibrated from lock points:

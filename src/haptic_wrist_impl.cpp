@@ -86,13 +86,15 @@ HapticWristImpl::HapticWristImpl()
     qf.extra[2].register_number = moteus::Register::kEncoderValidity;
     qf.extra[2].resolution = moteus::kInt8;
 
-    // cant use singleton if 2 usb's are plugged in at the same time
-
-    // change the transport depending on the config.moteus.transport_args
-    transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_args);
-    // moteus::Socketcan::Options can_opts;
-    // can_opts.ifname = config.moteus.transport_args;
-    // transport_ = std::make_shared<moteus::Socketcan>(can_opts);
+    if (config.moteus.transport_type == "pcie") {
+        moteus::Socketcan::Options can_opts;
+        can_opts.ifname = config.moteus.transport_pcie;
+        transport_ = std::make_shared<moteus::Socketcan>(can_opts);
+    } else if (config.moteus.transport_type == "usb") {
+        transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_usb);
+    } else {
+        throw std::runtime_error("Invalid transport_type in config. Must be 'usb' or 'pcie'.");
+    }
 
     options_common.transport = transport_;
 

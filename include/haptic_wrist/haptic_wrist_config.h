@@ -25,8 +25,9 @@ struct OrientationControllerConfig {
 
 struct MoteusConfig {
     Eigen::Vector2d kd;
-    // std::vector<std::string> transport_args;
-    std::string transport_args;
+    std::string transport_type;
+    std::string transport_usb;
+    std::string transport_pcie;
 };
 
 struct PassiveEncoderConfig {

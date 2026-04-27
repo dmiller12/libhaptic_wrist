@@ -10,9 +10,20 @@ template <>
 struct convert<MoteusConfig> {
     static bool decode(const Node& node, MoteusConfig& c) {
         c.kd = node["kd"].as<Eigen::Vector2d>();
-        if (node["transport_args"]) {
-            // c.transport_args = node["transport_args"].as<std::vector<std::string>>();
-            c.transport_args = node["transport_args"].as<std::string>();
+
+        // fallback to usbfd
+        if (node["transport_type"]) {
+            c.transport_type = node["transport_type"].as<std::string>();
+        } else {
+            c.transport_type = "usb"; 
+        }
+
+        // Decode specific transport arguments
+        if (node["transport_usb"]) {
+            c.transport_usb = node["transport_usb"].as<std::string>();
+        }
+        if (node["transport_pcie"]) {
+            c.transport_pcie = node["transport_pcie"].as<std::string>();
         }
         return true;
     }

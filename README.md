@@ -42,35 +42,25 @@ Zero position is set when haptic wrist is powered up, not when process started. 
 If present, reads config files from `~/.config/haptic_wrist`. Otherwise reads from `/etc/haptic_wrist`.
 Overwrite the config dir location with env variable HAPTIC_WRIST_CONFIG_DIR
 
-### Configuring a PEAK CAN FD PCIe card
-If using the peak CANFD PCIe card, first identify the network interface name assigned to the CANFD card:
+### Using pciefd
 
-The interface can be found by loading the module:
+in haptic_wrist.yaml set transport_type: "pcie" and rebuild
 
-```bash
-sudo modprobe peak_pciefd
+then, either run ```source wam_ws/src/wam_teleop/scripts/can_init_pcifd.sh``` or manually setup the wrist as follows:
+
 ```
-and running the following command:
-
-```bash
-dmesg | grep peak_pciefd
-```
-Now configure the interface. Replace your `<your-can-interface` with your actual interface name.
-```bash
 sudo modprobe peak_pciefd
 
-ip link set <your-can-interface> up type can \
-  bitrate 1000000 dbitrate 5000000 \
-  sjw 10 dsjw 5 \
-  sample-point 0.666 dsample-point 0.666 \
-  restart-ms 1000 fd on
+sudo ip link set <your-can-interface> down || true
+sudo ip link set <your-can-interface> type can bitrate 1000000 dbitrate 5000000 sjw 10 dsjw 5 sample-point 0.666 dsample-point 0.666 restart-ms 1000 fd on
+sudo ip link set <your-can-interface> up
 ```
-Finally, update the config and ensure `transport_args` matches the interface name you identified and configured.
-```yaml
-moteus:
-  # ... other settings
-  transport_args: ["--socketcan-iface", "<your-can-interface>"]
-```
+
+### Using usb
+
+in haptic_wrist.yaml set transport_type: "usb" and rebuild
+
+can interface does not need to be setup with usb like in pcie as we are using a serial connection.
 
 **If the transport_args are not provided or an empty string is used, the default fdcanusb transport method will be used.**
 
