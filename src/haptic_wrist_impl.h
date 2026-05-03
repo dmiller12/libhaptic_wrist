@@ -26,6 +26,7 @@ enum class ControlMode {
     NONE,        // No active control, compliant.
     POSITION,    // Actively controls joint position
     ORIENTATION, // Actively controls end-effector orientation.
+    TORQUE, // torque control
 };
 
 class HapticWristImpl {
@@ -38,6 +39,7 @@ class HapticWristImpl {
     // Control Methods
     void setTarget(const Eigen::Quaterniond& orientation);
     void setTarget(const jp_type& Position);
+    void setTarget(const jt_type& Position);
     void setOrientationGains(double kp, double kd);
     void hold(bool hold);
     void gravityCompensate(bool compensate = true);
@@ -70,6 +72,7 @@ class HapticWristImpl {
     std::atomic<ControlMode> control_mode_{ControlMode::NONE};
     Eigen::Quaterniond orientation_des_;
     jp_type position_des_;
+    jt_type torque_des_;
     
     // Controllers and Kinematics
     std::unique_ptr<OrientationController> orientation_controller_;

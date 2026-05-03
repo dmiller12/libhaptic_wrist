@@ -17,8 +17,10 @@ struct OrientationControllerConfig {
 };
 
 struct MoteusConfig {
-    Eigen::Vector3d kd;
-    std::vector<std::string> transport_args;
+    Eigen::Vector2d kd;
+    std::string transport_type;
+    std::string transport_usb;
+    std::string transport_pcie;
 };
 
 struct HapticWristConfig {

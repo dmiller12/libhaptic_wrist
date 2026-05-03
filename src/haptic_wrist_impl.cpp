@@ -57,8 +57,16 @@ HapticWristImpl::HapticWristImpl()
     qf.temperature = moteus::kIgnore;
 
     auto args = moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
-
-    transport_ = moteus::Controller::MakeSingletonTransport({});
+    if (config.moteus.transport_type == "pcie") {
+        moteus::Socketcan::Options can_opts;
+        can_opts.ifname = config.moteus.transport_pcie;
+        transport_ = std::make_shared<moteus::Socketcan>(can_opts);
+    } else if (config.moteus.transport_type == "usb") {
+        transport_ = std::make_shared<moteus::Fdcanusb>(config.moteus.transport_usb);
+    } else {
+        throw std::runtime_error("Invalid transport_type in config. Must be 'usb' or 'pcie'.");
+    }
+    options_common.transport = transport_;
 
     controllers_ = {
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 1; return opts; }()),
@@ -97,6 +105,12 @@ void HapticWristImpl::setTarget(const jp_type& position) {
     boost::lock_guard<boost::mutex> lock(set_mutex_);
     position_des_ = position;
     control_mode_.store(ControlMode::POSITION);
+};
+
+void HapticWristImpl::setTarget(const jt_type& torque) {
+    boost::lock_guard<boost::mutex> lock(set_mutex_);
+    torue_des_ = torque;
+    control_mode_.store(ControlMode::TORQUE);
 };
 
 void HapticWristImpl::setOrientationGains(double kp, double kd) {
@@ -200,6 +214,17 @@ bool HapticWristImpl::entryPoint() {
 
             jt_type joint_position_torque = joint_position_controller_->compute_torque(
                 local_desired_position, current_pos);
+
+            total_joint_torques += joint_position_torque;
+
+        else if (current_mode == ControlMode::TORQUE) {
+            Eigen::Vector3d local_desired_torque;
+            {
+                boost::lock_guard<boost::mutex> lock(set_mutex_);
+                local_desired_torque = torque_des_;
+            }
+
+            jt_type joint_position_torque = Eigen::Vector3d::Zero();
 
             total_joint_torques += joint_position_torque;
 

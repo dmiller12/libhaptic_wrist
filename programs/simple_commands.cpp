@@ -21,7 +21,10 @@ int main(int argc, char** argv) {
     // Eigen::Quaterniond desQuat(1.0, 0.0, 0.0, 0.0);
     //
     sleep(1);
-    Eigen::Quaterniond des = hw.getOrientation();
+    // Eigen::Quaterniond des = hw.getOrientation();
+
+    haptic_wrist::jt_type des;
+    des << 0, 0, 0.001;
     hw.setTarget(des);
 
     while (true) {
