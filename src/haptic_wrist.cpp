@@ -23,6 +23,10 @@ void HapticWrist::setTarget(const jp_type& position) {
     impl->setTarget(position);
 }
 
+void HapticWrist::setTorque(const jt_type& torque) {
+    impl->setTarget(torque);
+}
+
 Eigen::Quaterniond HapticWrist::getOrientation() {
     return impl->getOrientation();
 }

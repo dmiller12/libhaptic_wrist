@@ -25,7 +25,8 @@ int main(int argc, char** argv) {
 
     haptic_wrist::jt_type des;
     des << 0, 0, 0.001;
-    hw.setTarget(des);
+    // hw.setTarget(des);
+    hw.setTorque(des);
 
     while (true) {
         std::cout << "position\n" << hw.getPosition() << std::endl;

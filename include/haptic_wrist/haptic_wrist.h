@@ -47,6 +47,13 @@ class HapticWrist {
     void setTarget(const jp_type& position);
 
     /**
+     * @brief Provide a desired joint torque.
+     * The controller will generate torques to achieve this position.
+     * @param position Desired joint position in radians.
+     */
+    void setTorque(const jt_type& torque);
+
+    /**
      * @brief Sets the gains for the orientation controller.
      * @param kp Proportional gain on orientation error.
      * @param kd Derivative gain for damping.

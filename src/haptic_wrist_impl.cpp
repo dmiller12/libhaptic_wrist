@@ -56,7 +56,6 @@ HapticWristImpl::HapticWristImpl()
     qf.voltage = moteus::kIgnore;
     qf.temperature = moteus::kIgnore;
 
-    auto args = moteus::Controller::ProcessTransportArgs(config.moteus.transport_args);
     if (config.moteus.transport_type == "pcie") {
         moteus::Socketcan::Options can_opts;
         can_opts.ifname = config.moteus.transport_pcie;
@@ -107,9 +106,9 @@ void HapticWristImpl::setTarget(const jp_type& position) {
     control_mode_.store(ControlMode::POSITION);
 };
 
-void HapticWristImpl::setTarget(const jt_type& torque) {
+void HapticWristImpl::setTorque(const jt_type& torque) {
     boost::lock_guard<boost::mutex> lock(set_mutex_);
-    torue_des_ = torque;
+    torque_des_ = torque;
     control_mode_.store(ControlMode::TORQUE);
 };
 
@@ -217,7 +216,7 @@ bool HapticWristImpl::entryPoint() {
 
             total_joint_torques += joint_position_torque;
 
-        else if (current_mode == ControlMode::TORQUE) {
+        } else if (current_mode == ControlMode::TORQUE) {
             Eigen::Vector3d local_desired_torque;
             {
                 boost::lock_guard<boost::mutex> lock(set_mutex_);

@@ -39,7 +39,7 @@ class HapticWristImpl {
     // Control Methods
     void setTarget(const Eigen::Quaterniond& orientation);
     void setTarget(const jp_type& Position);
-    void setTarget(const jt_type& Position);
+    void setTorque(const jt_type& torque);
     void setOrientationGains(double kp, double kd);
     void hold(bool hold);
     void gravityCompensate(bool compensate = true);
