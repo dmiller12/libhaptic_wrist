@@ -23,10 +23,8 @@ int main(int argc, char** argv) {
     sleep(1);
     // Eigen::Quaterniond des = hw.getOrientation();
 
-    haptic_wrist::jt_type des;
-    des << 0, 0, 0.001;
     // hw.setTarget(des);
-    hw.setTorque(des);
+    hw.setTriggerHaptics(50);
 
     while (true) {
         std::cout << "position\n" << hw.getPosition() << std::endl;

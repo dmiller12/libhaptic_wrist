@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <memory>
+#include <boost/optional.hpp>
 
 #include "haptic_wrist/kinematics.h"
 #include "haptic_wrist/types.h"
@@ -108,6 +109,17 @@ class HapticWrist {
      * @return Current joint torques [N⋅m]: [T_Z1, T_Y2, T_Z3]
      */
     jt_type getTorque();
+
+     /**
+     * @brief Returns the current handle joystick, bumper and trigger information
+     * @return Current handle info: [trigger pos, trigger vel, trigger torque] or null
+     */
+    boost::optional<handle_type> getHandle();
+
+    /**
+     * @brief Pushes back on the trigger based on 0-255 stiffness. The higher the more haptics
+     */
+    void setTriggerHaptics(uint8_t stiffness);
 
     /**
      * @brief Returns the kinematics

@@ -5,7 +5,6 @@
 #include <Eigen/Dense>
 #include "haptic_wrist/kinematics.h"
 
-
 struct JointPositionControllerConfig {
     Eigen::Vector3d kp;
     Eigen::Vector3d kd;

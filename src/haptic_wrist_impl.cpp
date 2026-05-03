@@ -6,6 +6,7 @@
 #include <iostream>
 #include "trajectory.h"
 #include "config_loader.h"
+#include <boost/optional.hpp>
 
 using namespace mjbots;
 
@@ -70,7 +71,8 @@ HapticWristImpl::HapticWristImpl()
     controllers_ = {
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 1; return opts; }()),
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 2; return opts; }()),
-        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }())
+        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }()),
+        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 4; return opts; }())
     };
 
     // Set moteus params and initialize motors to a stopped state
@@ -106,15 +108,15 @@ void HapticWristImpl::setTarget(const jp_type& position) {
     control_mode_.store(ControlMode::POSITION);
 };
 
-void HapticWristImpl::setTorque(const jt_type& torque) {
-    boost::lock_guard<boost::mutex> lock(set_mutex_);
-    torque_des_ = torque;
-    control_mode_.store(ControlMode::TORQUE);
-};
-
 void HapticWristImpl::setOrientationGains(double kp, double kd) {
     boost::lock_guard<boost::mutex> lock(set_mutex_);
     orientation_controller_->setGains(kp, kd);
+}
+
+// stiffness is between 0 - 255
+void HapticWristImpl::setTriggerHaptics(uint8_t stiffness) {
+    boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
+    current_stiffness_ = stiffness;
 }
 
 void HapticWristImpl::hold(bool hold) {
@@ -216,17 +218,6 @@ bool HapticWristImpl::entryPoint() {
 
             total_joint_torques += joint_position_torque;
 
-        } else if (current_mode == ControlMode::TORQUE) {
-            Eigen::Vector3d local_desired_torque;
-            {
-                boost::lock_guard<boost::mutex> lock(set_mutex_);
-                local_desired_torque = torque_des_;
-            }
-
-            jt_type joint_position_torque = Eigen::Vector3d::Zero();
-
-            total_joint_torques += joint_position_torque;
-
         } else if (current_mode == ControlMode::ORIENTATION) {
             Eigen::Quaterniond desired_orientation;
             {
@@ -317,10 +308,13 @@ bool HapticWristImpl::entryPoint() {
 
 bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     send_frames_.clear();
-    for (size_t i = 0; i < controllers_.size(); i++) {
+    for (size_t i = 0; i < 3; i++) {
         cmd_.feedforward_torque = des_motor_torque(i);
         send_frames_.push_back(controllers_[i]->MakePosition(cmd_));
     }
+
+    cmd_.feedforward_torque = 0 * current_stiffness_;
+    send_frames_.push_back(controllers_[4]->MakePosition(cmd_));
 
     receive_frames_.clear();
     
@@ -333,8 +327,9 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     auto maybe_servo1 = FindServo(receive_frames_, 1);
     auto maybe_servo2 = FindServo(receive_frames_, 2);
     auto maybe_servo3 = FindServo(receive_frames_, 3);
+    auto maybe_servo4 = FindServo(receive_frames_, 4);
 
-    if (!maybe_servo1 || !maybe_servo2 || !maybe_servo3) {
+    if (!maybe_servo1 || !maybe_servo2 || !maybe_servo3 || !maybe_servo4) {
         missed_replies_++;
         if (missed_replies_ > 5) {
             std::cerr << "ERROR: Servos not responding. Halting." << std::endl;
@@ -348,8 +343,9 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     const auto& v1 = *maybe_servo1;
     const auto& v2 = *maybe_servo2;
     const auto& v3 = *maybe_servo3;
+    const auto& v4 = *maybe_servo4;
 
-    if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault) {
+    if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault || v4.mode == moteus::Mode::kFault) {
         std::cerr << "ERROR: Servo fault detected. " 
                   << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << std::endl;
         return true; // Return true for error
@@ -369,6 +365,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     motor_torque(0) = v1.torque;
     motor_torque(1) = v2.torque;
     motor_torque(2) = v3.torque;
+
+    handle_joy_ = handle_type(v4.position, v4.velocity, v4.torque);
     
     // Lock and update the shared state variables
     {
@@ -403,6 +401,11 @@ jv_type HapticWristImpl::getVelocity() {
 jt_type HapticWristImpl::getTorque() {
     boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
     return handle_torque_;
+}
+
+boost::optional<handle_type> HapticWristImpl::getHandle() {
+    boost::shared_lock<boost::shared_mutex> lock(state_mutex_);
+    return handle_joy_;
 }
 
 const Kinematics& HapticWristImpl::getKinematics() const {

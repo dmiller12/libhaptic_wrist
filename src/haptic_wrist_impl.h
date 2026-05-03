@@ -26,7 +26,6 @@ enum class ControlMode {
     NONE,        // No active control, compliant.
     POSITION,    // Actively controls joint position
     ORIENTATION, // Actively controls end-effector orientation.
-    TORQUE, // torque control
 };
 
 class HapticWristImpl {
@@ -39,7 +38,6 @@ class HapticWristImpl {
     // Control Methods
     void setTarget(const Eigen::Quaterniond& orientation);
     void setTarget(const jp_type& Position);
-    void setTorque(const jt_type& torque);
     void setOrientationGains(double kp, double kd);
     void hold(bool hold);
     void gravityCompensate(bool compensate = true);
@@ -53,6 +51,8 @@ class HapticWristImpl {
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
+    boost::optional<handle_type> getHandle();
+    void setTriggerHaptics(uint8_t stiffness);
     const Kinematics& getKinematics() const;
     Eigen::Quaterniond getOrientation();
 
@@ -73,6 +73,9 @@ class HapticWristImpl {
     Eigen::Quaterniond orientation_des_;
     jp_type position_des_;
     jt_type torque_des_;
+
+    // handle control
+    uint8_t current_stiffness_ = 0;
     
     // Controllers and Kinematics
     std::unique_ptr<OrientationController> orientation_controller_;
@@ -99,6 +102,9 @@ class HapticWristImpl {
     std::thread control_thread_;
     boost::mutex set_mutex_;
     boost::shared_mutex state_mutex_;
+
+    boost::optional<handle_type> handle_joy_;
+
 
     // Main control loop
     bool entryPoint();

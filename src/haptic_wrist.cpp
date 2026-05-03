@@ -1,5 +1,6 @@
 #include "haptic_wrist/haptic_wrist.h"
 #include "haptic_wrist_impl.h"
+#include <boost/optional.hpp>
 
 namespace haptic_wrist {
 
@@ -21,10 +22,6 @@ void HapticWrist::setOrientationGains(double kp, double kd) {
 
 void HapticWrist::setTarget(const jp_type& position) {
     impl->setTarget(position);
-}
-
-void HapticWrist::setTorque(const jt_type& torque) {
-    impl->setTarget(torque);
 }
 
 Eigen::Quaterniond HapticWrist::getOrientation() {
@@ -49,6 +46,14 @@ jv_type HapticWrist::getVelocity() {
 
 jt_type HapticWrist::getTorque() {
     return impl->getTorque();
+}
+
+boost::optional<handle_type> HapticWrist::getHandle() {
+    return impl->getHandle();
+}
+
+void HapticWrist::setTriggerHaptics(uint8_t stiffness) {
+    impl->setTriggerHaptics(stiffness);
 }
 
 const Kinematics& HapticWrist::getKinematics() const {
