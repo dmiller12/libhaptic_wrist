@@ -313,8 +313,18 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         send_frames_.push_back(controllers_[i]->MakePosition(cmd_));
     }
 
-    cmd_.feedforward_torque = 0 * current_stiffness_;
-    send_frames_.push_back(controllers_[4]->MakePosition(cmd_));
+
+    cmd_.feedforward_torque = 0.0;
+    if (boost::optional<handle_type> opt_handle = getHandle()) {
+        handle_type handle = *opt_handle; 
+        std::cout << "stiff " << unsigned(current_stiffness_) << " diff " << handle[0] << std::endl;
+        if (handle[0] > 0.2) {
+            cmd_.feedforward_torque = -0.05 * current_stiffness_ / 255.0;
+        } else if (handle[0] < -0.1) {
+            cmd_.feedforward_torque = 0.05;
+        }
+    }
+    send_frames_.push_back(controllers_[3]->MakePosition(cmd_));{}
 
     receive_frames_.clear();
     
@@ -347,7 +357,7 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
 
     if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault || v4.mode == moteus::Mode::kFault) {
         std::cerr << "ERROR: Servo fault detected. " 
-                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << std::endl;
+                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << " S4:" << v4.fault << std::endl;
         return true; // Return true for error
     }
 
@@ -366,7 +376,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     motor_torque(1) = v2.torque;
     motor_torque(2) = v3.torque;
 
-    handle_joy_ = handle_type(v4.position, v4.velocity, v4.torque);
+    // note that s3 and s4 are inverted to each other
+    handle_joy_ = handle_type(v4.position + v3.position, v4.velocity, v4.torque);
     
     // Lock and update the shared state variables
     {

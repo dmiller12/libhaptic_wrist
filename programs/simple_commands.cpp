@@ -9,8 +9,8 @@ int main(int argc, char** argv) {
     hw.gravityCompensate(false);
     hw.run();
 
-    sleep(1);
-    hw.hold(true);
+    // sleep(1);
+    // hw.hold(true);
     //
     // // haptic_wrist::jp_type desiredPos;
     // // desiredPos << M_PI / 2.0, M_PI / 2.0, M_PI / 2.0;
@@ -24,14 +24,23 @@ int main(int argc, char** argv) {
     // Eigen::Quaterniond des = hw.getOrientation();
 
     // hw.setTarget(des);
-    hw.setTriggerHaptics(50);
+    hw.setTriggerHaptics(250);
+    // std::cout << "set hap" << std::endl;
 
     while (true) {
         std::cout << "position\n" << hw.getPosition() << std::endl;
-        Eigen::Quaterniond orientation = hw.getOrientation();
-        Eigen::AngleAxisd angleAxis(orientation);
-        std::cout << "Orientation Axis: " << angleAxis.axis().transpose() << ", Angle: " << angleAxis.angle()
-                  << std::endl;
+        std::cout << "torque\n" << hw.getTorque() << std::endl;
+        // Eigen::Quaterniond orientation = hw.getOrientation();
+        // Eigen::AngleAxisd angleAxis(orientation);
+        // std::cout << "Orientation Axis: " << angleAxis.axis().transpose() << ", Angle: " << angleAxis.angle()
+        //           << std::endl;
+         if (boost::optional<haptic_wrist::handle_type> opt_handle = hw.getHandle()) {
+            haptic_wrist::handle_type handle = *opt_handle; 
+
+            std::cout << "h p: " << handle[0] 
+                    << " | h v: " << handle[1] 
+                    << " | h t: " << handle[2] << std::endl;
+        }
 
         sleep(1);
     }

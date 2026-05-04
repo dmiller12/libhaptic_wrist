@@ -9,7 +9,7 @@ namespace YAML {
 template <>
 struct convert<MoteusConfig> {
     static bool decode(const Node& node, MoteusConfig& c) {
-        c.kd = node["kd"].as<Eigen::Vector2d>();
+        c.kd = node["kd"].as<Eigen::Vector4d>();
 
         // fallback to usbfd
         if (node["transport_type"]) {
