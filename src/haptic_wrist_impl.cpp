@@ -319,8 +319,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         handle_type handle = *opt_handle; 
         std::cout << "stiff " << unsigned(current_stiffness_) << " diff " << handle[0] << std::endl;
         if (handle[0] > 0.2) {
-            cmd_.feedforward_torque = -0.05 * current_stiffness_ / 255.0;
-        } else if (handle[0] < -0.1) {
+            cmd_.feedforward_torque = -0.3 * handle[0] * current_stiffness_ / 255.0;
+        } else if (handle[0] < -0.2) {
             cmd_.feedforward_torque = 0.05;
         }
     }

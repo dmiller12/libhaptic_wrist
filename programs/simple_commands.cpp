@@ -24,7 +24,8 @@ int main(int argc, char** argv) {
     // Eigen::Quaterniond des = hw.getOrientation();
 
     // hw.setTarget(des);
-    hw.setTriggerHaptics(250);
+    // hw.setTriggerHaptics(50);
+    hw.setTriggerHaptics(255);
     // std::cout << "set hap" << std::endl;
 
     while (true) {

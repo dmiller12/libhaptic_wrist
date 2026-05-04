@@ -67,7 +67,7 @@ class HapticWristImpl {
 
     // Control state
     jp_type home_;
-    const double control_rate_ = 500.0;
+    const double control_rate_ = 250.0;
     const std::chrono::duration<double> control_period_;
     std::atomic<ControlMode> control_mode_{ControlMode::NONE};
     Eigen::Quaterniond orientation_des_;
