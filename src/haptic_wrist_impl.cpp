@@ -317,10 +317,9 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     cmd_.feedforward_torque = 0.0;
     if (boost::optional<handle_type> opt_handle = getHandle()) {
         handle_type handle = *opt_handle; 
-        std::cout << "stiff " << unsigned(current_stiffness_) << " diff " << handle[0] << std::endl;
-        if (handle[0] > 0.2) {
+        if (handle[0] > 0) { // spring force if trigger is close to closed
             cmd_.feedforward_torque = -0.3 * handle[0] * current_stiffness_ / 255.0;
-        } else if (handle[0] < -0.2) {
+        } else { // force limit on how far trigger can extend
             cmd_.feedforward_torque = 0.05;
         }
     }
