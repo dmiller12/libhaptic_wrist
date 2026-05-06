@@ -313,7 +313,6 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         send_frames_.push_back(controllers_[i]->MakePosition(cmd_));
     }
 
-
     cmd_.feedforward_torque = 0.0;
     if (boost::optional<handle_type> opt_handle = getHandle()) {
         handle_type handle = *opt_handle; 
