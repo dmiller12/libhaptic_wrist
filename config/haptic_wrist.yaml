@@ -2,9 +2,8 @@
 
 
 moteus:
-  kd: [0.08, 0.08, 0.001, 0.001] # do these even work?
+  kd: [0.0, 0.0, 0.001, 0.01] # do these even work?
   transport_type: "usb" # one of usb or pcie
-  # transport_usb: "/dev/serial/by-id/usb-mjbots_fdcanusb_71CC7928-if01"
   transport_usb: "/dev/serial/by-id/usb-mjbots_fdcanusb_5B75C352-if00"
   transport_pcie: "can3"
 
