@@ -2,7 +2,7 @@
 
 
 moteus:
-  kd: [0.0, 0.0, 0.001, 0.01] # do these even work?
+  kd: [0.04, 0.001, 0.001, 0.005] # I dont think these work. set in moteus these vals
   transport_type: "usb" # one of usb or pcie
   transport_usb: "/dev/serial/by-id/usb-mjbots_fdcanusb_5B75C352-if00"
   transport_pcie: "can3"

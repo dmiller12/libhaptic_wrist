@@ -80,13 +80,13 @@ HapticWristImpl::HapticWristImpl()
     for (auto& c : controllers_) {
         c->DiagnosticWrite("tel stop\n");
         c->DiagnosticFlush();
-        std::ostringstream ostr;
-        ostr << "conf set servo.pid_position.kp " << 0;
-        c->DiagnosticCommand(ostr.str());
-        ostr << "conf set servo.pid_position.ki " << 0;
-        c->DiagnosticCommand(ostr.str());
-        ostr << "conf set servo.pid_position.kd " << config.moteus.kd(i);
-        c->DiagnosticCommand(ostr.str());
+        // std::ostringstream ostr;
+        // ostr << "conf set servo.pid_position.kp " << 0;
+        // c->DiagnosticCommand(ostr.str());
+        // ostr << "conf set servo.pid_position.ki " << 0;
+        // c->DiagnosticCommand(ostr.str());
+        // ostr << "conf set servo.pid_position.kd " << config.moteus.kd(i);
+        // c->DiagnosticCommand(ostr.str());
         c->SetStop();
         ++i;
     }
@@ -319,7 +319,7 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         if (handle[0] > 0) { // spring force if trigger is close to closed
             cmd_.feedforward_torque = -0.3 * handle[0] * current_stiffness_ / 255.0;
         } else { // force limit on how far trigger can extend
-            cmd_.feedforward_torque = 0.05;
+            cmd_.feedforward_torque = -0.005 * handle[0];
         }
     }
     send_frames_.push_back(controllers_[3]->MakePosition(cmd_));{}
