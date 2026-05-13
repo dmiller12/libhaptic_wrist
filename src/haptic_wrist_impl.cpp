@@ -71,8 +71,7 @@ HapticWristImpl::HapticWristImpl()
     controllers_ = {
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 1; return opts; }()),
         std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 2; return opts; }()),
-        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }()),
-        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 4; return opts; }())
+        std::make_shared<moteus::Controller>([&]() { auto opts = options_common; opts.id = 3; return opts; }())
     };
 
     // Set moteus params and initialize motors to a stopped state
@@ -80,13 +79,13 @@ HapticWristImpl::HapticWristImpl()
     for (auto& c : controllers_) {
         c->DiagnosticWrite("tel stop\n");
         c->DiagnosticFlush();
-        // std::ostringstream ostr;
-        // ostr << "conf set servo.pid_position.kp " << 0;
-        // c->DiagnosticCommand(ostr.str());
-        // ostr << "conf set servo.pid_position.ki " << 0;
-        // c->DiagnosticCommand(ostr.str());
-        // ostr << "conf set servo.pid_position.kd " << config.moteus.kd(i);
-        // c->DiagnosticCommand(ostr.str());
+        std::ostringstream ostr;
+        ostr << "conf set servo.pid_position.kp " << 0;
+        c->DiagnosticCommand(ostr.str());
+        ostr << "conf set servo.pid_position.ki " << 0;
+        c->DiagnosticCommand(ostr.str());
+        ostr << "conf set servo.pid_position.kd " << config.moteus.kd(i);
+        c->DiagnosticCommand(ostr.str());
         c->SetStop();
         ++i;
     }
@@ -313,17 +312,6 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
         send_frames_.push_back(controllers_[i]->MakePosition(cmd_));
     }
 
-    cmd_.feedforward_torque = 0.0;
-    if (boost::optional<handle_type> opt_handle = getHandle()) {
-        handle_type handle = *opt_handle; 
-        if (handle[0] > 0) { // spring force if trigger is close to closed
-            cmd_.feedforward_torque = -0.3 * handle[0] * current_stiffness_ / 255.0;
-        } else { // force limit on how far trigger can extend
-            cmd_.feedforward_torque = -0.005 * handle[0];
-        }
-    }
-    send_frames_.push_back(controllers_[3]->MakePosition(cmd_));{}
-
     receive_frames_.clear();
     
     const auto can_start_time = std::chrono::steady_clock::now();
@@ -335,9 +323,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     auto maybe_servo1 = FindServo(receive_frames_, 1);
     auto maybe_servo2 = FindServo(receive_frames_, 2);
     auto maybe_servo3 = FindServo(receive_frames_, 3);
-    auto maybe_servo4 = FindServo(receive_frames_, 4);
 
-    if (!maybe_servo1 || !maybe_servo2 || !maybe_servo3 || !maybe_servo4) {
+    if (!maybe_servo1 || !maybe_servo2 || !maybe_servo3) {
         missed_replies_++;
         if (missed_replies_ > 5) {
             std::cerr << "ERROR: Servos not responding. Halting." << std::endl;
@@ -351,11 +338,10 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     const auto& v1 = *maybe_servo1;
     const auto& v2 = *maybe_servo2;
     const auto& v3 = *maybe_servo3;
-    const auto& v4 = *maybe_servo4;
 
-    if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault || v4.mode == moteus::Mode::kFault) {
+    if (v1.mode == moteus::Mode::kFault || v2.mode == moteus::Mode::kFault || v3.mode == moteus::Mode::kFault) {
         std::cerr << "ERROR: Servo fault detected. " 
-                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << " S4:" << v4.fault << std::endl;
+                  << "S1:" << v1.fault << " S2:" << v2.fault << " S3:" << v3.fault << std::endl;
         return true; // Return true for error
     }
 
@@ -374,8 +360,8 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     motor_torque(1) = v2.torque;
     motor_torque(2) = v3.torque;
 
-    // note that s3 and s4 are inverted to each other
-    handle_joy_ = handle_type(v4.position + v3.position, v4.velocity, v4.torque);
+    // TODO: get these from ps4 knuckle thing
+    handle_joy_ = handle_type(0, 0, 0);
     
     // Lock and update the shared state variables
     {
