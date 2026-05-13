@@ -29,8 +29,8 @@ int main(int argc, char** argv) {
     // std::cout << "set hap" << std::endl;
 
     while (true) {
-        std::cout << "position\n" << hw.getPosition() << std::endl;
-        std::cout << "torque\n" << hw.getTorque() << std::endl;
+        // std::cout << "position\n" << hw.getPosition() << std::endl;
+        // std::cout << "torque\n" << hw.getTorque() << std::endl;
         // Eigen::Quaterniond orientation = hw.getOrientation();
         // Eigen::AngleAxisd angleAxis(orientation);
         // std::cout << "Orientation Axis: " << angleAxis.axis().transpose() << ", Angle: " << angleAxis.angle()
@@ -38,9 +38,14 @@ int main(int argc, char** argv) {
          if (boost::optional<haptic_wrist::handle_type> opt_handle = hw.getHandle()) {
             haptic_wrist::handle_type handle = *opt_handle; 
 
-            std::cout << "h p: " << handle[0] 
-                    << " | h v: " << handle[1] 
-                    << " | h t: " << handle[2] << std::endl;
+            std::cout << "bumper: " << handle[0] 
+                    << " | trigger: " << handle[1] 
+                    << " | x: " << handle[2] 
+                    << " | o: " << handle[3] 
+                    << " | up: " << handle[4] 
+                    << " | down: " << handle[5] 
+                    << " | left: " << handle[6] 
+                    << " | right: " << handle[7] << std::endl;
         }
 
         sleep(1);

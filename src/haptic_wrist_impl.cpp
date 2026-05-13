@@ -7,6 +7,9 @@
 #include "trajectory.h"
 #include "config_loader.h"
 #include <boost/optional.hpp>
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/joystick.h>
 
 using namespace mjbots;
 
@@ -89,10 +92,21 @@ HapticWristImpl::HapticWristImpl()
         c->SetStop();
         ++i;
     }
+
+    joy_fd_ = open("/dev/input/js0", O_RDONLY | O_NONBLOCK);
+    if (joy_fd_ < 0) {
+        std::cerr << "WARNING: Could not open Sony Navigation Controller at /dev/input/js0" << std::endl;
+    } else {
+        joy_axes_.resize(10, 0); 
+        joy_buttons_.resize(15, 0);
+    }
 };
 
 HapticWristImpl::~HapticWristImpl() {
     stop();
+    if (joy_fd_ >= 0) {
+        close(joy_fd_);
+    }
 }
 
 void HapticWristImpl::setTarget(const Eigen::Quaterniond& orientation) {
@@ -113,6 +127,7 @@ void HapticWristImpl::setOrientationGains(double kp, double kd) {
 }
 
 // stiffness is between 0 - 255
+// NOTE: in EE wrist this wont do anyting
 void HapticWristImpl::setTriggerHaptics(uint8_t stiffness) {
     boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
     current_stiffness_ = stiffness;
@@ -360,15 +375,38 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
     motor_torque(1) = v2.torque;
     motor_torque(2) = v3.torque;
 
-    // TODO: get these from ps4 knuckle thing
-    handle_joy_ = handle_type(0, 0, 0);
-    
+    pollJoystick();
+
     // Lock and update the shared state variables
     {
         boost::unique_lock<boost::shared_mutex> lock(state_mutex_);
         handle_theta_ = compute_pos(motor_theta);
         handle_dtheta_ = compute_vel(motor_dtheta);
         handle_torque_ = compute_torque(motor_torque);
+
+        if (joy_fd_ >= 0) {
+            handle_type current_joy;
+            
+            // Bumper (L1)
+            current_joy(0) = joy_buttons_[4]; 
+            
+            // Trigger (L2)
+            current_joy(1) = joy_buttons_[5];    
+            
+            current_joy(2) = joy_buttons_[0]; // X (Cross)
+            current_joy(3) = joy_buttons_[1]; // O (Circle)
+            
+            // D-Pad
+            current_joy(4) = joy_buttons_[8]; // Up
+            current_joy(5) = joy_buttons_[9]; // Down
+            current_joy(6) = joy_buttons_[10]; // Left
+            current_joy(7) = joy_buttons_[11]; // Right
+
+            handle_joy_ = current_joy;
+
+        } else {
+            handle_joy_ = handle_type::Zero();
+        }
 
         // Update orientation from new joint positions
         std::array<Kin, 4> kin = kinematics_.eval(handle_theta_);
@@ -405,6 +443,25 @@ boost::optional<handle_type> HapticWristImpl::getHandle() {
 
 const Kinematics& HapticWristImpl::getKinematics() const {
     return kinematics_;
+}
+
+void HapticWristImpl::pollJoystick() {
+    if (joy_fd_ < 0) return;
+
+    struct js_event event;
+    while (read(joy_fd_, &event, sizeof(event)) > 0) {
+        event.type &= ~JS_EVENT_INIT;
+
+        if (event.type == JS_EVENT_AXIS) {
+            if (event.number < joy_axes_.size()) {
+                joy_axes_[event.number] = event.value; 
+            }
+        } else if (event.type == JS_EVENT_BUTTON) {
+            if (event.number < joy_buttons_.size()) {
+                joy_buttons_[event.number] = event.value; 
+            }
+        }
+    }
 }
 
 Eigen::Quaterniond HapticWristImpl::getOrientation() {
