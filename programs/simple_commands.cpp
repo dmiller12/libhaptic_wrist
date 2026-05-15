@@ -10,10 +10,10 @@ int main(int argc, char** argv) {
     hw.run();
 
     sleep(1);
-    hw.hold(true);
-    //
-    // haptic_wrist::jp_type desiredPos;
-    // desiredPos << M_PI / 2.0, M_PI / 2.0, M_PI / 2.0;
+    // hw.hold(true);
+
+    haptic_wrist::jp_type desiredPos;
+    desiredPos << 0, -M_PI / 2.0, 0;
     // Eigen::Quaterniond currentQuat = hw.getOrientation(); 
     //
     // Eigen::Vector3d axis = Eigen::Vector3d::UnitY();
@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     sleep(1);
     // Eigen::Quaterniond des = hw.getOrientation();
 
-    // hw.setTarget(des);
+    hw.setTarget(desiredPos);
     // hw.setTriggerHaptics(50);
     // hw.setTriggerHaptics(255);
     // std::cout << "set hap" << std::endl;
