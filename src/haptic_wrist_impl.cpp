@@ -393,15 +393,6 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
             // Trigger
             current_joy(1) = joy_buttons_[5];    
             
-            current_joy(2) = joy_buttons_[0]; // X
-            current_joy(3) = joy_buttons_[1]; // O
-            
-            // D-Pad
-            current_joy(4) = joy_buttons_[8]; // Up
-            current_joy(5) = joy_buttons_[9]; // Down
-            current_joy(6) = joy_buttons_[10]; // Left
-            current_joy(7) = joy_buttons_[11]; // Right
-
             handle_joy_ = current_joy;
 
         } else {

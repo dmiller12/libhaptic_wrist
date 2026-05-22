@@ -41,13 +41,7 @@ int main(int argc, char** argv) {
             haptic_wrist::handle_type handle = *opt_handle; 
 
             std::cout << "bumper: " << handle[0] 
-                    << " | trigger: " << handle[1] 
-                    << " | x: " << handle[2] 
-                    << " | o: " << handle[3] 
-                    << " | up: " << handle[4] 
-                    << " | down: " << handle[5] 
-                    << " | left: " << handle[6] 
-                    << " | right: " << handle[7] << std::endl;
+                    << " | trigger: " << handle[1] << std::endl;
         }
 
         sleep(1);
