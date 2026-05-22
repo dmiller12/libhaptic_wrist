@@ -1,4 +1,4 @@
-#include "handle.h"
+#include "haptic_wrist/handle.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/joystick.h>
@@ -44,7 +44,7 @@ void Handle::poll() {
     }
 }
 
-boost::optional<handle_type> Handle::get_state() const {
+boost::optional<handle_type> Handle::getHandle() const {
     if (joy_fd_ < 0) return boost::none;
 
     handle_type current_joy;

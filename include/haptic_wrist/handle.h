@@ -17,7 +17,7 @@ class Handle {
     void poll();
 
     // Returns the current parsed state (bumper, trigger), or boost::none if not connected
-    boost::optional<handle_type> get_state() const;
+    boost::optional<handle_type> getHandle() const;
 
   private:
     int joy_fd_ = -1;
