@@ -110,12 +110,6 @@ class HapticWrist {
      */
     jt_type getTorque();
 
-     /**
-     * @brief Returns the current handle joystick, bumper and trigger information
-     * @return Current handle info: [trigger pos, trigger vel, trigger torque] or null
-     */
-    boost::optional<handle_type> getHandle();
-
     /**
      * @brief Pushes back on the trigger based on 0-255 stiffness. The higher the more haptics
      */

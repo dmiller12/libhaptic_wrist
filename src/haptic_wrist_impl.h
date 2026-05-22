@@ -103,13 +103,6 @@ class HapticWristImpl {
     boost::mutex set_mutex_;
     boost::shared_mutex state_mutex_;
 
-    int joy_fd_ = -1;
-    std::vector<int> joy_axes_;
-    std::vector<int> joy_buttons_;
-    void pollJoystick();
-    boost::optional<handle_type> handle_joy_; // our custom defined joy mapping we use in teleop
-
-
     // Main control loop
     bool entryPoint();
     // Hardware command execution

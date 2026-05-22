@@ -40,6 +40,7 @@ target_sources(haptic_wrist
 	PRIVATE
 	src/haptic_wrist_impl.cpp
 	src/haptic_wrist.cpp
+	src/handle.cpp
 	src/trapezoidal_velocity_profile.cpp
 	src/gravity_comp.cpp
 	src/kinematics.cpp

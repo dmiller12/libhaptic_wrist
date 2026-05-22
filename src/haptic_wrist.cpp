@@ -48,10 +48,6 @@ jt_type HapticWrist::getTorque() {
     return impl->getTorque();
 }
 
-boost::optional<handle_type> HapticWrist::getHandle() {
-    return impl->getHandle();
-}
-
 void HapticWrist::setTriggerHaptics(uint8_t stiffness) {
     impl->setTriggerHaptics(stiffness);
 }

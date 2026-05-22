@@ -1,13 +1,15 @@
 
 #include "haptic_wrist/haptic_wrist.h"
+#include "haptic_wrist/handle.h"
 #include <iostream>
 #include <unistd.h>
 
 int main(int argc, char** argv) {
 
-    haptic_wrist::HapticWrist hw;
-    hw.gravityCompensate(false);
-    hw.run();
+    // haptic_wrist::HapticWrist hw;
+    // hw.gravityCompensate(false);
+    // hw.run();
+    haptic_wrist::Handle handle;
 
     sleep(1);
     // hw.hold(true);
@@ -25,7 +27,7 @@ int main(int argc, char** argv) {
     // Eigen::Quaterniond des = hw.getOrientation();
 
     // hw.setTarget(desiredPos);
-    hw.jointMoveTo(desiredPos);
+    // hw.jointMoveTo(desiredPos);
     // hw.setTriggerHaptics(50);
     // hw.setTriggerHaptics(255);
     // std::cout << "set hap" << std::endl;
@@ -37,7 +39,8 @@ int main(int argc, char** argv) {
         // Eigen::AngleAxisd angleAxis(orientation);
         // std::cout << "Orientation Axis: " << angleAxis.axis().transpose() << ", Angle: " << angleAxis.angle()
         //           << std::endl;
-         if (boost::optional<haptic_wrist::handle_type> opt_handle = hw.getHandle()) {
+        handle.poll();
+        if (boost::optional<haptic_wrist::handle_type> opt_handle = handle.getHandle()) {
             haptic_wrist::handle_type handle = *opt_handle; 
 
             std::cout << "bumper: " << handle[0] 
@@ -47,6 +50,6 @@ int main(int argc, char** argv) {
         sleep(1);
     }
 
-    hw.stop();
+    // hw.stop();
     return 0;
 }

@@ -20,7 +20,7 @@ FetchContent_MakeAvailable(yaml-cpp)
 find_package(Eigen3 REQUIRED)
 find_package(Boost COMPONENTS thread REQUIRED)
 
-add_library(haptic_wrist STATIC haptic_wrist.cpp trapezoidal_velocity_profile.cpp gravity_comp.cpp kinematics.cpp)
+add_library(haptic_wrist STATIC haptic_wrist.cpp trapezoidal_velocity_profile.cpp gravity_comp.cpp kinematics.cpp handle.cpp)
 target_include_directories(haptic_wrist PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
