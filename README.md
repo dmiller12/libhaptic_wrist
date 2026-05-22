@@ -2,7 +2,7 @@
 # Install Instructions
 Assuming you are using [wam-ros-docker](https://github.com/ualberta-robotics/wam-ros-docker).
 
-This branch is for the end effector wrist ![EE wrist](https://github.com/sergey-khl/wam_teleop/blob/EEWrist/media/ee_wrist.jpg).
+This branch is for the end effector wrist ![EE wrist](https://github.com/ualberta-robotics/wam-ros-docker/blob/main/media/ee_wrist.jpg).
 ```bash
 cd /home/user/wam_ros
 source build_haptic.sh
