@@ -1,15 +1,11 @@
 
 # Install Instructions
-From project root
+Assuming you are using [wam-ros-docker](https://github.com/ualberta-robotics/wam-ros-docker).
+
+This branch is for the end effector wrist ![EE wrist](https://github.com/sergey-khl/wam_teleop/blob/EEWrist/media/ee_wrist.jpg).
 ```bash
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
-If you don't have the libbarrett dependency, you can disable related executables with:
-```bash
-cmake -DBUILD_BARRETT=OFF ..
+cd /home/user/wam_ros
+source build_haptic.sh
 ```
 To run tests, from the build directory execute:
 ```bash
@@ -36,34 +32,10 @@ If present, reads config files from `~/.config/haptic_wrist`. Otherwise reads fr
 Overwrite the config dir location with env variable HAPTIC_WRIST_CONFIG_DIR
 
 ### Configuring a PEAK CAN FD PCIe card
-If using the peak CANFD PCIe card, first identify the network interface name assigned to the CANFD card:
+see [wam_teleop](https://github.com/sergey-khl/wam_teleop/blob/EEWrist/README.md) and [can_init_pcifd](https://github.com/sergey-khl/wam_teleop/blob/EEWrist/scripts/can_init_pcifd.sh) for examples.
+We tend to reserve can0 and can1 for the WAM and can2 and can3 for the moteus controlled wrists.
 
-The interface can be found by loading the module:
-
-```bash
-sudo modprobe peak_pciefd
-```
-and running the following command:
-
-```bash
-dmesg | grep peak_pciefd
-```
-Now configure the interface. Replace your `<your-can-interface` with your actual interface name.
-```bash
-sudo modprobe peak_pciefd
-
-ip link set <your-can-interface> up type can \
-  bitrate 1000000 dbitrate 5000000 \
-  sjw 10 dsjw 5 \
-  sample-point 0.666 dsample-point 0.666 \
-  restart-ms 1000 fd on
-```
-Finally, update the config and ensure `transport_args` matches the interface name you identified and configured.
-```yaml
-moteus:
-  # ... other settings
-  transport_args: ["--socketcan-iface", "<your-can-interface>"]
-```
+Finally, update the config and ensure `transport_type` matches the interface name you want to use (usb or pcie)
 
 **If the transport_args are not provided or an empty string is used, the default fdcanusb transport method will be used.**
 
@@ -76,3 +48,13 @@ Open tview:
 ```bash
 python3 -m moteus_gui.tview --target 1,2,3
 ```
+
+You may need to add additional arguments if the above does not work. For example,
+```bash
+python3 -m moteus_gui.tview --devices=1,2,3 --fdcanusb /dev/serial/by-id/usb-mjbots_fdcanusb_5B75C352-if00
+```
+if using usb. Or, if using PCI:
+```bash
+python3 -m moteus_gui.tview --can-iface socketcan --device 3 --can-chan can2
+```
+Note that the details of device #, can# and /dev/serial/by-id may be different for you.
