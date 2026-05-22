@@ -58,3 +58,8 @@ if using usb. Or, if using PCI:
 python3 -m moteus_gui.tview --can-iface socketcan --device 3 --can-chan can2
 ```
 Note that the details of device #, can# and /dev/serial/by-id may be different for you. These commands will also work for moteus.moteus_tool
+
+
+### Pairing the Sony navigation controller
+This can be weird. On rowley I found that If I plug the controller in and run ```bluetoothctl``` I will get prompted to authorize a service. If I accept it, unplug, the press the sony button,
+the device will now hoppefully be connected over bluetooth.
