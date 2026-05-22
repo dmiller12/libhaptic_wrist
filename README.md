@@ -37,7 +37,7 @@ We tend to reserve can0 and can1 for the WAM and can2 and can3 for the moteus co
 
 Finally, update the config and ensure `transport_type` matches the interface name you want to use (usb or pcie)
 
-**If the transport_args are not provided or an empty string is used, the default fdcanusb transport method will be used.**
+If the transport_args are not provided or an empty string is used, the default fdcanusb transport method will be used.
 
 ### Common Moteus Commands
 Zero the moteus
