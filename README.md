@@ -63,3 +63,14 @@ Note that the details of device #, can# and /dev/serial/by-id may be different f
 ### Pairing the Sony navigation controller
 This can be weird. On rowley I found that If I plug the controller in and run ```bluetoothctl``` I will get prompted to authorize a service. If I accept it, unplug, the press the sony button,
 the device will now hoppefully be connected over bluetooth.
+
+On other computers it can be much worse. I found some luck with installing 
+
+- ``` git clone https://github.com/falkTX/qtsixa.git ```
+- ```cd qtsixa/sixad```
+- ```make && sudo make install```
+- ```sudo sixas --start```
+
+keep this window running
+
+NOTE: using sixaxis will change the mappings. see handle.cpp

@@ -1,5 +1,6 @@
 #include "haptic_wrist/handle.h"
 #include <fcntl.h>
+#include <iostream>
 #include <unistd.h>
 #include <linux/joystick.h>
 
@@ -47,11 +48,35 @@ void Handle::poll() {
 boost::optional<handle_type> Handle::getHandle() const {
     if (joy_fd_ < 0) return boost::none;
 
+    // std::cout << "Axes: ";
+    // for (size_t i = 0; i < joy_axes_.size(); ++i) {
+    //     std::cout << "[" << i << "]=" << joy_axes_[i] << " ";
+    // }
+    // std::cout << std::endl;
+    //
+    // std::cout << "Buttons: ";
+    // for (size_t i = 0; i < joy_buttons_.size(); ++i) {
+    //     std::cout << "[" << i << "]=" << joy_buttons_[i] << " ";
+    // }
+    // std::cout << std::endl;
+
+
     handle_type current_joy;
+    // BLUETOOTHCTL
+    // // Bumper
+    // current_joy(0) = joy_buttons_[4]; 
+    // // Trigger
+    // current_joy(1) = joy_buttons_[5];   
+    // // x
+    // current_joy(2) = joy_buttons_[1];   
+
+    // SIXAXIS
     // Bumper
-    current_joy(0) = joy_buttons_[4]; 
+    current_joy(0) = joy_buttons_[10]; 
     // Trigger
-    current_joy(1) = joy_buttons_[5];   
+    current_joy(1) = joy_buttons_[8];   
+    // x
+    current_joy(2) = joy_buttons_[14];   
 
     return current_joy;
 }
