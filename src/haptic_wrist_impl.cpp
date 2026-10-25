@@ -28,6 +28,7 @@ HapticWristImpl::HapticWristImpl()
 
     HapticWristConfig config = load_config(config_dir);
 
+    name_ = config.name;
     home_ = config.home_position;
 
     kinematics_ = Kinematics(config.dh_parameters, config.eef_to_tool, Eigen::Matrix4d::Identity());
@@ -380,6 +381,10 @@ bool HapticWristImpl::executeControl(const mt_type& des_motor_torque) {
 }
 
 // --- Getters and Helper Methods ---
+std::string HapticWristImpl::getName() const {
+    return name_;
+}
+
 jp_type HapticWristImpl::getHome() const {
     return home_;
 }

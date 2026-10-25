@@ -1,5 +1,7 @@
 # Configuration for serial direct drive Z-Y-Z wrist
 
+name: "ee_wrist"
+
 moteus:
   kd: [0.12, 0.08, 0.003]
   transport_type: "usb" # one of usb or pcie

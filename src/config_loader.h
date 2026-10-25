@@ -61,6 +61,7 @@ struct convert<OrientationControllerConfig> {
 template <>
 struct convert<HapticWristConfig> {
     static bool decode(const Node& node, HapticWristConfig& config) {
+        config.name = node["name"].as<std::string>();
         config.moteus = node["moteus"].as<MoteusConfig>();
         config.dh_parameters = node["kinematics"]["dh"].as<std::vector<haptic_wrist::DHParameter>>();
         config.eef_to_tool = node["kinematics"]["eef_to_tool"].as<Eigen::Matrix4d>();

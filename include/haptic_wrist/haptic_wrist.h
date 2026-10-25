@@ -7,6 +7,7 @@
 
 #include "haptic_wrist/kinematics.h"
 #include "haptic_wrist/types.h"
+#include <string>
 
 
 namespace haptic_wrist {
@@ -85,6 +86,12 @@ class HapticWrist {
      * If false, stops applying active control torques (motors will be compliant).
      */
     void hold(bool hold);
+
+    /**
+     * @brief name is used for wrist commands in wam_teleop repo
+     * @return name of the current wrist
+     */
+    std::string getName() const;
 
     /**
      * @brief Returns the home position.

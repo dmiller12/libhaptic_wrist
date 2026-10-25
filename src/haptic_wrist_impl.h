@@ -18,6 +18,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <memory>
 #include <thread>
+#include <string>
 
 namespace haptic_wrist {
 
@@ -48,6 +49,7 @@ class HapticWristImpl {
 
     // Getters
     jp_type getHome() const;
+    std::string getName() const;
     jp_type getPosition();
     jv_type getVelocity();
     jt_type getTorque();
@@ -90,6 +92,7 @@ class HapticWristImpl {
     Eigen::Quaterniond handle_orientation_;
     
     // Configuration and settings
+    std::string name_;
     std::atomic<bool> gravity_compensate_{false};
     Eigen::Matrix4d base_to_wrist_ = Eigen::Matrix4d::Identity();
 

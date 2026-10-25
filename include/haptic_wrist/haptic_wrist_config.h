@@ -23,6 +23,7 @@ struct MoteusConfig {
 };
 
 struct HapticWristConfig {
+    std::string name;
     MoteusConfig moteus;
     std::vector<haptic_wrist::DHParameter> dh_parameters;
     Eigen::Matrix4d eef_to_tool;
